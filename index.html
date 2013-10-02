@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <title>Away3D TypeScript</title>
+    <meta name="Keywords" content="Awat3D, AS3, TypeScript, JavaScript, WebGL, GLSL, AGAL, 3D" />
+    <meta name="description" content="Away3D TypeScript" />
+    <meta name="robots" content="noarchive" />
+
+    <script type="text/javascript">
+
+        var _gaq = _gaq || [];
+        _gaq.push(['_setAccount', 'UA-2577858-2']);
+        _gaq.push(['_trackPageview']);
+
+        (function() {
+            var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+            ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+            var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+        })();
+
+    </script>
+
+    <script src="http://maps.googleapis.com/maps/api/js?sensor=false"></script>
+
+    <script type="text/javascript" language="javascript" src="k2013code/js/libs/TweenLite.min.js"></script>
+    <script type="text/javascript" language="javascript" src="k2013code/js/libs/ColorPropsPlugin.min.js"></script>
+    <script type="text/javascript" language="javascript" src="k2013code/js/libs/jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" language="javascript" src="k2013code/js/libs/jquery.easing.min.js"></script>
+    <script type="text/javascript" language="javascript" src="k2013code/js/libs/jquery.scrollTo-1.4.3.1.min.js"></script>
+    <script type="text/javascript" language="javascript" src="k2013code/js/libs/swfobject.min.js"></script>
+    <script type="text/javascript" language="javascript" src="k2013code/js/libs/Away3D.next.min.js"></script>
+
+    <script type="text/javascript" language="javascript" src="k2013code/js/main.js"></script>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no;"/>
+
+    <link rel="stylesheet" media="screen" href="k2013code/css/style.css" />
+    <link rel="stylesheet" media="screen" href="k2013code/css/style_mq.css" />
+    <link rel="stylesheet" media="screen" href="k2013code/css/style_handheld.css" />
+
+</head>
+<body>
+
+    <!------------------------------------------------------------------------------------------------------>
+    <!-- Background -->
+    <!------------------------------------------------------------------------------------------------------>
+
+    <div id="backgroundD"></div>
+    <div id="backgroundGrad"></div>
+
+    <!------------------------------------------------------------------------------------------------------>
+    <!-- Video -->
+    <!------------------------------------------------------------------------------------------------------>
+
+    <div id="videoContainer">
+        <div id="fullSceen">
+            <img id="fullScreenButton" src="media/images/fullscreen_alt.png"/>
+        </div>
+        <iframe id="iFRameContent" scrolling="no" ></iframe>
+    </div>
+
+    <!------------------------------------------------------------------------------------------------------>
+    <!-- Content -->
+    <!------------------------------------------------------------------------------------------------------>
+
+    <div id="contentArea">
+
+        <div class="dashedLine"></div>
+        <div class="contentAreaTitle">Away 3D TypeScript</div>
+        <div class="contentAreaBody">
+            <p>
+                Over the past few months we have been porting Away3D to TypeScript, which will be instantly familiar to current developers and easy to get started for new users whether you are using JavaScript or TypeScript.
+            </p>
+        </div>
+        <div class="contentAreaBodyTop"><a class="top-menuItem" id="aboutTop">Back to top</a></div>
+        <!-- Away3D Demos -->
+
+            <div class="dashedLine"></div>
+
+            <div class="contentAreaTitle">Examples</div>
+            <div class="contentAreaBody">
+                <p>
+                    Demos, and development tests built using Away3D TypeScript.
+                </p>
+            </div>
+
+            <!-- Away3D Demos -->
+
+            <div class="contentTitleSmall">Demos</div>
+            <div class="contentAreaBody">
+                <p>
+                    <a href='http://kurst.co.uk/samples/awayts/ObjLoaderMasterChief.html' uri='http://kurst.co.uk/samples/awayts/ObjLoaderMasterChief.html' class='content-link'>OBJ Parser</a>
+                    <a href='https://github.com/away3d/away3d-examples-ts/blob/master/src/ObjLoaderMasterChief.ts' target="_blank"> - view source</a><br/>
+
+                    <a href='http://kurst.co.uk/samples/awayts/AWDSuzanne.html' uri='http://kurst.co.uk/samples/awayts/AWDSuzanne.html' class='content-link'>AWD Parser</a>
+                    <a href='https://github.com/away3d/away3d-examples-ts/blob/master/src/AWDSuzanne.ts' target="_blank"> - view source</a><br/>
+
+                    <a href='http://kurst.co.uk/samples/awayts/resize_cube/' uri='http://kurst.co.uk/samples/awayts/resize_cube/' class='content-link'>Primitives</a>
+                    <a href='https://github.com/away3d/away3d-examples-ts/blob/master/src/TorusPrimitive.ts' target="_blank"> - view source</a><br/>
+                </p>
+            </div>
+
+            <!-- Away3D Development Tests -->
+
+            <div class="contentTitleSmall">Development Tests</div>
+                <div class="contentAreaBody">
+                    <p>
+                        <a href='http://kurst.co.uk/samples/awayts/wireframecube/' uri='http://kurst.co.uk/samples/awayts/wireframecube/' class='content-link'>Wireframe Primitives</a><br/>
+                        <a href='http://kurst.co.uk/samples/awayts/awd_light/' uri='http://kurst.co.uk/samples/awayts/awd_light/' class='content-link'>AWD Parser - Suzanne</a><br/>
+                        <a href='http://kurst.co.uk/samples/awayts/t800/' uri='http://kurst.co.uk/samples/awayts/t800/' class='content-link'>OBJ Parser - T800</a><br/>
+                        <a href='http://kurst.co.uk/samples/awayts/TorusPrimitive.html' uri='http://kurst.co.uk/samples/awayts/TorusPrimitive.html' class='content-link'>Specular Lighting</a><br/>
+                        <a href='http://kurst.co.uk/samples/awayts/diffuse/' uri='http://kurst.co.uk/samples/awayts/diffuse/' class='content-link'>Diffuse Lighting</a><br/>
+                        <a href='http://kurst.co.uk/samples/awayts/resize/' uri='http://kurst.co.uk/samples/awayts/resize/' class='content-link'>Resizable View3D</a><br/>
+                        <a href='http://kurst.co.uk/samples/awayts/tests/' uri='http://kurst.co.uk/samples/awayts/tests/' class='content-link'>Test Harness</a><br/>
+                    </p>
+                </div>
+
+            <div class="contentAreaBodyTop"><a class="top-menuItem" id="aboutTop">Back to top</a></div>
+
+
+        <!-- Away3D API -->
+
+        <div class="dashedLine"></div>
+        <div class="contentAreaTitle">Away3D TypeScript API</div>
+        <div class="contentAreaBody">
+            <p>
+
+                One key goal of the TypeScript project was to allow existing Away3D projects to easily migrate to HTML5 and WebGL, ensuring that existing AGAL effects would move seamlessly to the TypeScript platform, without modification, and generally enabling developer workflow to remain consistent across platforms.<br/><br/>
+
+                With that in mind, care has been taken to ensure that the APIs remain consistent and that Away3D and AS3 users and developers can take full advantage of familiar class packages. The new framework will also allow developers to seamlessly integrate GLSL shader effects that were not possible before.<br/><br/>
+
+                In Away3D TypeScript you can code using either AGAL or GLSL. This makes Away3D TypeScript ideally suited for porting existing AS3 projects or starting brand new GLSL projects using a familiar and easy to use APIs.
+
+            </p>
+
+            <!------------------------------ AGLSL -->
+
+            <div class="textAreaWrapper">
+            <div class="contentTitleSmall">AGAL</div><br/>
+            <textarea id='txt_in' class='AGLSLTextArea' ">
+part fragment 1
+tex ft0, v0, fs0 <2d,linear,miplinear,clamp>
+div ft0.xyz, ft0.xyz, ft0.w
+tex ft0, v0, fs1 <2d,linear,miplinear,clamp>
+add ft0.w, ft0.w, fc0.z
+div ft0.xyz, ft0, ft0.w
+sub ft0.w, ft0.w, fc0.z
+sat ft0.xyz, ft0
+mov ft1.x, ft0.w
+mov ft0.w, ft1.x
+mul ft0, ft0, fc1
+add ft0, ft0, fc2
+mov oc, ft0
+endpart
+part vertex 1
+m44 op, vt0, vc0
+endpart
+            </textarea>
+
+                <br/>
+<button id='compile'>Compile AGAL</button>
+                <br/><br/>
+
+            </div>
+            <div class="textAreaWrapper">
+            <div class="contentTitleSmall">GLSL</div><br/>
+            <textarea id='txt_out' class='AGLSLTextArea' >
+Select the 'Compile AGAL' button to export and view resulting GLSL.
+            </textarea>
+
+            </div>
+
+
+
+        </div>
+
+        <div class="contentAreaBodyTop"><a class="top-menuItem" id="aboutTop">Back to top</a></div>
+
+        <!-- Away3D Source -->
+
+        <div class="dashedLine"></div>
+        <div class="contentAreaTitle">Source Files</div>
+        <div class="contentAreaBody">
+            <p>
+                <a href='https://github.com/away3d/away3d-core-ts' target="_blank">GitHub: Away3D Core TypeScript</a><br/>
+                <a href='https://github.com/away3d/away3d-examples-ts' target="_blank">GitHub: Away3D Examples</a><br/>
+
+            </p>
+        </div>
+        <div class="contentAreaBodyTop"><a class="top-menuItem" id="aboutTop">Back to top</a></div>
+
+        <!-- Development Blogs / Posts -->
+
+        <div class="dashedLine"></div>
+        <div class="contentAreaTitle">Development Information / Posts</div>
+        <div class="contentAreaBody">
+            <p>
+                <a href='http://plugin.io/away3d-typescript-2/' target="_blank">plugin.io - Away3D TypeScript Dev 2</a><br/>
+                <a href='http://plugin.io/away3d-typescript/' target="_blank">plugin.io - Away3D TypeScript Dev</a><br/>
+                <a href='https://plus.google.com/110014083168683052903/posts/CvdnRaWfTJ1' target="_blank">Google Plus - Away3D TypeScript Progress Update</a><br/>
+            </p>
+        </div>
+        <div class="contentAreaBodyTop"><a class="top-menuItem" id="aboutTop">Back to top</a></div>
+        <br/><br/>
+
+    </div>
+
+    <!------------------------------------------------------------------------------------------------------>
+    <!-- Logo -->
+    <!------------------------------------------------------------------------------------------------------>
+
+    <div id="logoContainer"></div>
+
+</body>
+</html>
