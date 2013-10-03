@@ -9,7 +9,6 @@ module KurstWebsite {
 
         //--------------------------------------------------------------------------
 
-        private $                   : JQueryStatic;
         private lastColour          : string = '#30353b';
         private colourTween         : Object;
         private bgUpdateCounter     : number = 0;
@@ -17,25 +16,24 @@ module KurstWebsite {
 
         //--------------------------------------------------------------------------
 
-        constructor( ){//$ : JQueryStatic  ) {
+        constructor( ){
 
             super();
-            //this.$ = $;
             this.colourTween = new Object();
 
         }
 
         //--------------------------------------------------------------------------
 
-        /*
-         */
+	    /**
+	     */
         public setColour( colour: string ) : void {
 
             this.animateBackground( colour );
 
         }
-        /*
-         */
+	    /**
+	     */
         public resetBackground() : void {
 
             this.animateBackgroundToColour( this.backgroundColour );
@@ -44,15 +42,15 @@ module KurstWebsite {
 
         //--------------------------------------------------------------------------
 
-        /*
-         */
+	    /**
+	     */
         private animateBackground( colour ) : void {
 
             this.animateBackgroundToColour( colour );
 
         }
-        /*
-         */
+	    /**
+	     */
         private animateBackgroundToColour( colour ) : void {
 
             if ( this.lastColour != null ) {
@@ -69,8 +67,8 @@ module KurstWebsite {
             this.bgUpdateCounter    = 0;
 
         }
-        /*
-         */
+	    /**
+	     */
         private updateBackgroundTween() : void {
 
             if ( this.bgUpdateCounter % 10 == 0 ) { // Optimisation
@@ -84,20 +82,13 @@ module KurstWebsite {
                 this.getId('backgroundD').style.backgroundImage = '-webkit-radial-gradient(center 180px, farthest-corner, ' + this.lastColour + ' 0%, '+this.backgroundColour + ' 620px)'
                 this.getId('backgroundD').style.backgroundImage = '-webkit-gradient(radial, 180px 180px, 0, 180px 0%, 813, color-stop(0%, '+ this.lastColour + '), color-stop(620px, ' + this.backgroundColour + '))' ;//
 
-                /*
-                $( '#backgroundD' ).css('backgroundImage','radial-gradient(farthest-corner at center 180px, ' + this.lastColour + ' 0%, ' + this.backgroundColour + ' 620px)' );
-                $( '#backgroundD' ).css('backgroundImage','-o-radial-gradient(center 180px, farthest-corner, ' + this.lastColour + ' 0%, ' + this.backgroundColour + ' 620px)' );
-                $( '#backgroundD' ).css('backgroundImage','-webkit-radial-gradient(center 180px, farthest-corner, ' + this.lastColour + ' 0%, '+this.backgroundColour + ' 620px)' );
-                $( '#backgroundD' ).css('backgroundImage','-webkit-gradient(radial, 180px 180px, 0, 180px 0%, 813, color-stop(0%, '+ this.lastColour + '), color-stop(620px, ' + this.backgroundColour + '))' );
-                */
-
             }
 
             this.bgUpdateCounter++;
 
         }
-        /*
-         */
+	    /**
+	     */
         private completeBackgroundTween() : void{
 
             this.bgUpdateCounter    = 0;
@@ -109,12 +100,6 @@ module KurstWebsite {
             this.getId('backgroundD').style.backgroundImage = '-webkit-radial-gradient(center 180px, farthest-corner, ' + this.lastColour + ' 0%, '+this.backgroundColour + ' 620px)'
             this.getId('backgroundD').style.backgroundImage = '-webkit-gradient(radial, 180px 180px, 0, 180px 0%, 813, color-stop(0%, '+ this.lastColour + '), color-stop(620px, ' + this.backgroundColour + '))' ;//
 
-            /*
-            $( '#backgroundD' ).css('backgroundImage','radial-gradient(farthest-corner at center 180px, ' + this.lastColour + ' 0%, ' + this.backgroundColour + ' 620px)' );
-            $( '#backgroundD' ).css('backgroundImage','-o-radial-gradient(center 180px, farthest-corner, ' + this.lastColour + ' 0%, ' + this.backgroundColour + ' 620px)' );
-            $( '#backgroundD' ).css('backgroundImage','-webkit-radial-gradient(center 180px, farthest-corner, ' + this.lastColour + ' 0%, '+this.backgroundColour + ' 620px)' );
-            $( '#backgroundD' ).css('backgroundImage','-webkit-gradient(radial, 180px 180px, 0, 180px 0%, 813, color-stop(0%, '+ this.lastColour + '), color-stop(620px, ' + this.backgroundColour + '))' );
-            */
         }
     }
 }
