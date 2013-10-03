@@ -1,12 +1,7 @@
-// ------------------------------------------------------------------------------------------------------------------------------------------------------
-// --sourcemap $ProjectFileDir$/away_showcase_ts/k2013code/src/main.ts --out $ProjectFileDir$/away_showcase_ts/k2013code/js/main.js
-// ------------------------------------------------------------------------------------------------------------------------------------------------------
-
 ///<reference path="kurst/utils/JSonLoader.ts"/>
 ///<reference path="kurst/utils/GSpreadSheetLoader.ts"/>
 ///<reference path="kurst/utils/JSUtils.ts"/>
 ///<reference path="kurst/website/BackgroundGrad.ts"/>
-///<reference path="kurst/website/VideoPlayer.ts"/>
 ///<reference path="kurst/website/UI.ts"/>
 ///<reference path="kurst/website/AGLSLDemo.ts"/>
 /// <reference path="libs/maps/jquery.d.ts" />
@@ -16,20 +11,14 @@ var controller = this;
 module Main {
 
     //--------------------------------------------------------------------------
-    // Data
-
-    var gsData      : kurst.utils.GSpreadSheetLoader;                                       // Google Docs Spreadsheet loader
-
-    //--------------------------------------------------------------------------
     // Website UI
 
-    var videoPlayer     : KurstWebsite.VideoPlayer;                                         // Video Player
     var ui              : KurstWebsite.UI;                                                  // Site UI
     var bg              : KurstWebsite.BackgroundGrad;                                      // Background Gradient
-    var iFrame          : HTMLIFrameElement;
-    var AGLSLDemo       : KurstWebsite.AGLSLDemo;
-
+    var iFrame          : HTMLIFrameElement;                                                // IFrame
+    var AGLSLDemo       : KurstWebsite.AGLSLDemo;                                           // AGLSL Demo
     var colours         : string[] = ['#8b0000', '#019601', '#010192', '#008b8b', '#8e008e', '#bbbb00'];
+
     //--------------------------------------------------------------------------
 
     /*
@@ -37,15 +26,14 @@ module Main {
      */
     export function start() {
 
-        ui                  = new KurstWebsite.UI( $ );
+        ui                  = new KurstWebsite.UI( );
         bg                  = new KurstWebsite.BackgroundGrad( );
         AGLSLDemo           = new KurstWebsite.AGLSLDemo();
-
         iFrame              = <HTMLIFrameElement> kurst.utils.JSUtils.getId( 'iFRameContent' );
 
-        iFrame.src = 'http://kurst.co.uk/samples/awayts/awd_light_b/';//'test.html';
+        iFrame.src = 'http://kurst.co.uk/samples/awayts/awd_light_b/';
 
-
+	    // Get all .content-link classes to open into the iFrame
         var links = $('.content-link').click(function( event ){
 
             event.preventDefault();
@@ -58,6 +46,7 @@ module Main {
 
         });
 
+	    // Replace all href's in .content-link to be anchors ( as they load their content in iFrames )
         for ( var ind in links ) {
 
             var div = links[ind];
@@ -67,21 +56,15 @@ module Main {
 
         }
 
+	    // Back to top links
         $( '.top-menuItem' ).click( function (){
             $.scrollTo( '#logoContainer' , 800 );
         });
 
+	    // Get a background colour change
         setTimeout( function () {
             bg.setColour( '#8b0000' );
         } , 3000 );
-
-        //console.log( links );
-
-    }
-    /*
-     * Callback - Google Spreadsheet data load error
-     */
-    function gsLoadError(){
 
     }
 
@@ -90,6 +73,5 @@ module Main {
 $( document ).ready( function (){
 
     Main.start();
-    console.log( 'start2');
 
 });
