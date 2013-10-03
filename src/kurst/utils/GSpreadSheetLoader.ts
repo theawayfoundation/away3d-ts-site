@@ -107,7 +107,7 @@ module kurst.utils {
 
                 rowData 	= jsonRowData[c];
                 row 		= new Object();
-/**/
+
                 for ( var d = 0 ; d < this.gSheetHead.length ; d++ ){
 
                     colName 		= this.gSheetHead[ d ];
