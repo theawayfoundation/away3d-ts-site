@@ -10,6 +10,7 @@ var away;
             this.tests = new Array();
             this.counter = 0;
             this.sourceVisible = false;
+            this.loadDefault = true;
             this.initFrameSet();
             this.initInterface();
 
@@ -22,7 +23,6 @@ var away;
             this.sourceBtn.onclick = function () {
                 return _this.toggleSource();
             };
-
             this.dropDown.onchange = function (e) {
                 return _this.dropDownChange(e);
             };
@@ -37,8 +37,13 @@ var away;
         * @param ts Path to Typescript file ( not yet used - reserved for future show source )
         */
         AppHarness.prototype.load = function (classPath, js, ts) {
-            this.testIframe.src = 'frame.html?name=' + classPath + '&js=' + js;
-            this.srcIframe.src = "data:text/html;charset=utf-8," + this.createSourceViewHTML(ts);
+            this.loadFromURL();
+
+            if (this.loadDefault) {
+                window.history.pushState(js, js, '?test=' + js);
+                this.testIframe.src = 'frame.html?name=' + classPath + '&js=' + js;
+                this.srcIframe.src = "data:text/html;charset=utf-8," + this.createSourceViewHTML(ts);
+            }
         };
 
         /**
@@ -78,6 +83,23 @@ var away;
         };
 
         //------------------------------------------------------------------------------
+        AppHarness.prototype.loadFromURL = function () {
+            var queryParams = Utils.getQueryParams(document.location.search);
+
+            if (queryParams.test != null) {
+                var l = this.tests.length;
+
+                for (var c = 0; c < l; c++) {
+                    if (this.tests[c].js == queryParams.test) {
+                        console.log('======>>>> LOAD TEST');
+
+                        this.navigateToSection(this.tests[c]);
+                        this.loadDefault = false;
+                    }
+                }
+            }
+        };
+
         /**
         *
         */
@@ -188,6 +210,7 @@ var away;
         * @param testData
         */
         AppHarness.prototype.navigateToSection = function (testData) {
+            window.history.pushState(testData.js, testData.js, '?test=' + testData.js);
             this.srcIframe.src = "data:text/html;charset=utf-8," + this.createSourceViewHTML(testData.src);
             this.testIframe.src = 'frame.html?name=' + testData.classpath + '&js=' + testData.js;
         };
@@ -221,7 +244,7 @@ var away;
             html += '               padding: 0px;';
             html += '          }';
             html += '       </style>';
-            html += '   <script src="http://gist-it.appspot.com/github' + url + '?footer=no"></script>';
+            html += '   <script src="' + url + '?footer=no"></script>';
             html += '</head>';
             html += '<body>';
             html += '</body>';
@@ -272,7 +295,7 @@ var away;
         function AppFrame() {
             this.classPath = '';
             this.jsPath = '';
-            var queryParams = AppFrame.getQueryParams(document.location.search);
+            var queryParams = Utils.getQueryParams(document.location.search);
 
             if (queryParams.js != undefined && queryParams.name != undefined) {
                 this.jsPath = queryParams.js;
@@ -320,8 +343,16 @@ var away;
                 new obj();
             }
         };
+        return AppFrame;
+    })();
+    away.AppFrame = AppFrame;
 
-        AppFrame.getQueryParams = /**
+    //---------------------------------------------------
+    // Common Utilities
+    var Utils = (function () {
+        function Utils() {
+        }
+        Utils.getQueryParams = /**
         *
         * Utility function - Parse a Query formatted string
         *
@@ -339,9 +370,9 @@ var away;
 
             return params;
         };
-        return AppFrame;
+        return Utils;
     })();
-    away.AppFrame = AppFrame;
+    away.Utils = Utils;
 
     //---------------------------------------------------
     // Data
