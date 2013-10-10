@@ -244,7 +244,7 @@ var away;
             html += '               padding: 0px;';
             html += '          }';
             html += '       </style>';
-            html += '   <script src="' + url + '?footer=no"></script>';
+            html += '   <script src="http://gist-it.appspot.com/github/away3d/away3d-core-ts/tree/master/tests/' + url + '?footer=no"></script>';
             html += '</head>';
             html += '<body>';
             html += '</body>';
@@ -276,9 +276,7 @@ var away;
         */
         AppHarness.prototype.dropDownChange = function (e) {
             this.dropDown.options[this.dropDown.selectedIndex].value;
-
             this.counter = this.dropDown.selectedIndex;
-
             var dataIndex = parseInt(this.dropDown.options[this.dropDown.selectedIndex].value);
 
             if (!isNaN(dataIndex)) {
