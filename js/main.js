@@ -800,7 +800,7 @@ var Main;
         AGLSLDemo = new KurstWebsite.AGLSLDemo();
         iFrame = kurst.utils.JSUtils.getId('iFRameContent');
 
-        iFrame.src = 'http://kurst.co.uk/samples/awayts/awd_light_b/';
+        iFrame.src = 'examples/Basic_LoadAWD.html';
 
         // Get all .content-link classes to open into the iFrame
         var links = $('.content-link').click(function (event) {
