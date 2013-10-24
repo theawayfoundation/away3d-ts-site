@@ -72,6 +72,17 @@ var tests;
             Sprite3DTest.prototype.onEnterFrame = function (dt) {
                 this._time += dt;
 
+	            if ( ! this._move) {
+
+		            if ( this._lastPanAngle == null )
+		            {
+			            this._lastPanAngle = this._cameraController.panAngle;
+		            }
+		            this._lastPanAngle += 0.1;
+		            this._cameraController.panAngle = this._lastPanAngle;
+
+
+	            }
                 this._view.render();
             };
 
@@ -95,7 +106,7 @@ var tests;
 
                             this._view.scene.addChild(s);
 
-                            for (var c = 0; c < 4000; c++) {
+                            for (var c = 0; c < 100; c++) {
                                 var size = this.getRandom(5, 50);
                                 s = new away.entities.Sprite3D(material, size, size);
                                 s.x = this.getRandom(-400, 400);
@@ -127,6 +138,7 @@ var tests;
             Sprite3DTest.prototype.onMouseUp = function (event) {
                 this._move = false;
             };
+
             Sprite3DTest.prototype.onMouseMove = function (event) {
                 if (this._move) {
                     this._cameraController.panAngle = 0.3 * (event.clientX - this._lastMouseX) + this._lastPanAngle;

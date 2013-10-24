@@ -1234,9 +1234,7 @@ var away;
                 var rot = new geom.Vector3D();
                 rot.y = Math.asin(-mr[2]);
 
-                var cos = Math.cos(rot.y);
-
-                if (cos > 0) {
+                if (mr[2] != 1 && mr[2] != -1) {
                     rot.x = Math.atan2(mr[6], mr[10]);
                     rot.z = Math.atan2(mr[1], mr[0]);
                 } else {
@@ -2308,6 +2306,65 @@ var away;
 })(away || (away = {}));
 var away;
 (function (away) {
+    ///<reference path="../../_definitions.ts"/>
+    (function (math) {
+        var PoissonLookup = (function () {
+            function PoissonLookup() {
+            }
+            PoissonLookup.initDistributions = function () {
+                // precalculated for best control
+                this._distributions = new Array();
+                this._distributions[0] = new Array(0.3082841, 0.4320919);
+                this._distributions[1] = new Array(0.3082841, 0.4320919, -0.2274942, -0.6640266);
+                this._distributions[2] = new Array(0.8742689, 0.0009265686, -0.6864116, -0.5536607, -0.2325206, 0.7678371);
+                this._distributions[3] = new Array(0.3913446, -0.7084417, -0.7511101, -0.5935929, -0.2323436, 0.5320091, 0.8435315, 0.5035911);
+                this._distributions[4] = new Array(0.2122471, -0.5771395, -0.8543506, -0.1763534, 0.5189021, 0.8323698, -0.3616908, 0.5865368, 0.9523004, -0.04948437);
+                this._distributions[5] = new Array(0.5791035, 0.3496495, 0.2959551, -0.6006749, -0.2419119, -0.06879545, -0.7403072, 0.6110353, -0.04555973, 0.8059174, -0.5275017, -0.737129);
+                this._distributions[6] = new Array(0.06941478, 0.8519508, -0.7441907, 0.2426432, 0.6439992, -0.2405252, -0.1007523, -0.2327587, -0.6427067, -0.7248485, 0.8050759, 0.5492936, 0.3573822, -0.8824506);
+                this._distributions[7] = new Array(0.8509863, 0.4452587, -0.09507271, 0.2073005, 0.1706571, -0.6434793, 0.8029777, -0.2718274, -0.4401725, 0.8196304, 0.2715359, 0.8598521, -0.8121575, -0.006447683, -0.6486837, -0.7237598);
+                this._distributions[8] = new Array(0.6951686, -0.2680728, -0.04933243, 0.3710589, 0.6592212, 0.3661054, -0.01579228, -0.6909603, -0.3275101, -0.1756866, 0.3811549, 0.9218544, -0.216032, 0.9755028, -0.7065172, 0.3355389, -0.6579109, -0.6798355);
+                this._distributions[9] = new Array(0.6181276, -0.09790418, -0.2537868, -0.5570995, -0.1964931, 0.3459414, 0.3474613, -0.8885581, 0.5135743, 0.5753114, -0.9549091, 0.1480672, -0.8711916, -0.4293123, -0.6928071, 0.6190156, -0.13369, 0.8892705, 0.0548224, -0.1246777);
+                this._distributions[10] = new Array(0.4853027, -0.5080479, -0.1331675, -0.506597, 0.139575, 0.01316885, 0.803486, -0.07568797, 0.5240274, 0.4883182, -0.4334005, 0.1207938, -0.7794577, -0.3985141, 0.1576432, -0.9861221, -0.3712867, 0.6959021, 0.1517378, 0.9847429, -0.9762396, 0.1661073);
+                this._distributions[11] = new Array(-0.2790166, -0.01252619, 0.3389016, 0.3921154, 0.2408341, -0.313211, -0.8151779, -0.3898362, -0.6347761, 0.3486495, 0.09471484, -0.7722448, -0.1385674, 0.6364574, 0.2456331, 0.9295807, -0.3864306, -0.8247881, 0.6111673, -0.7164014, 0.8287669, 0.05466961, 0.837706, 0.5415626);
+                this._distributions[12] = new Array(0.056417, 0.3185693, -0.8245888, 0.1882799, 0.8575996, 0.1136829, 0.1070375, 0.875332, 0.4076743, -0.06000621, -0.4311306, 0.7239349, 0.2677574, -0.538472, -0.08486642, -0.2083647, -0.888989, -0.3906443, -0.4768958, -0.6664082, 0.09334993, -0.9861541, 0.808736, -0.455949, 0.5889823, 0.7660807);
+                this._distributions[13] = new Array(-0.2681346, -0.3955857, -0.1315102, -0.8852947, -0.5143692, 0.09551838, 0.4344836, -0.546945, -0.8620899, -0.3813288, 0.1650431, 0.02034803, -0.1543657, 0.3842218, -0.828457, 0.5376903, -0.6145, -0.7818927, -0.2639062, 0.8784655, 0.1912684, 0.9720125, 0.3135219, 0.5224229, 0.7850655, 0.4592297, 0.7465045, -0.1368916);
+                this._distributions[14] = new Array(0.4241029, 0.695281, 0.150511, -0.02304107, -0.2482675, 0.9120338, 0.8057325, 0.2622084, -0.2445909, 0.2765962, 0.8588713, -0.1772072, 0.3117845, -0.4385471, -0.3923851, -0.3298936, -0.1751254, -0.7405846, 0.6926506, -0.684163, -0.9304563, -0.3254691, -0.8533293, 0.1523024, 0.2510415, -0.917345, -0.6239773, -0.7105472, -0.6104624, 0.6041355);
+                this._distributions[15] = new Array(0.5844554, 0.06651045, 0.1343258, 0.6756578, 0.3799674, -0.6301104, 0.5590436, 0.7940555, 0.09574714, 0.02262517, 0.8697868, 0.393301, 0.003945862, -0.421735, 0.9043913, -0.2432393, -0.4844007, 0.7190998, -0.3201078, 0.2972371, -0.3852352, -0.6341155, -0.5413069, -0.09223081, -0.8468984, -0.5126905, 0.004156174, -0.8633173, -0.9681889, -0.03305046, -0.846509, 0.4414353);
+                this._distributions[16] = new Array(0.4506488, 0.657668, 0.4621297, 0.07441051, -0.2782125, 0.6201044, 0.9750003, 0.09110117, 0.1019436, 0.2986514, 0.03457398, 0.9631706, 0.542098, -0.5505635, 0.8675668, 0.4938077, -0.5414361, 0.2655292, -0.7941836, 0.6003053, -0.09847672, -0.1001604, -0.9316511, -0.08572888, 0.07286467, -0.611899, -0.5232627, -0.4082253, -0.5481608, -0.827938, -0.1551939, -0.9621193, 0.9220031, -0.3315949);
+                this._distributions[17] = new Array(0.197908, -0.4697656, -0.4474689, -0.3428435, 0.8529873, -0.2228634, 0.6022478, -0.5469642, 0.2545276, -0.931133, -0.1507547, -0.7855865, -0.07606658, 0.1011628, 0.3046715, 0.2785755, 0.4698432, -0.1064076, 0.6831254, 0.4152522, 0.1374381, 0.8363233, -0.2166121, 0.6682042, 0.5511393, 0.7996449, -0.4278994, 0.28836, -0.8875198, 0.2181732, -0.8772842, -0.2818254, -0.7000262, 0.5762185, -0.6062385, -0.7439126);
+                this._distributions[18] = new Array(0.6645703, -0.05678739, 0.5720971, 0.4533803, -0.07660709, 0.08802763, 0.5163431, -0.4426552, 0.1163455, -0.3404382, -0.4004807, -0.5046007, 0.2932099, -0.8201418, -0.5322125, 0.03834766, -0.1490209, -0.8817304, -0.8000439, -0.3509448, 0.5260983, 0.8421043, 0.1197811, 0.6963812, 0.9498612, 0.3122156, -0.9285746, 0.02120355, -0.6670724, 0.7217396, 0.9155889, -0.3510147, -0.271941, 0.4727852, 0.318879, 0.1634057, -0.2686755, 0.9253026);
+                this._distributions[19] = new Array(0.5064292, 0.422527, 0.8935515, -0.06610427, 0.1199719, 0.175568, 0.403388, -0.2003276, 0.1657927, 0.8154403, 0.9301245, 0.2929218, -0.1644068, 0.6201534, 0.7113559, -0.6589743, -0.3364046, -0.1799502, 0.02109996, -0.392765, -0.382213, 0.3219992, -0.9201946, 0.1207967, -0.726185, 0.4291916, -0.7443482, -0.2480059, -0.5147594, 0.7418784, 0.1935272, -0.7406143, -0.3643523, -0.5559214, -0.7147766, -0.6326278, -0.2524151, -0.9096627, 0.5161405, 0.7908453);
+                this._distributions[20] = new Array(0.7921003, -0.3032096, 0.5992879, -0.009052323, 0.2538549, -0.1872749, 0.7053444, 0.3677175, 0.5417761, -0.8170255, 0.9749611, 0.1210478, 0.1969143, -0.6117041, -0.1824499, -0.4634196, -0.1181338, -0.8668742, -0.3050112, -0.1352596, -0.4409327, -0.7082354, -0.03225285, 0.1171548, 0.3113096, 0.3250439, -0.8166144, -0.463995, -0.01014475, 0.4715334, -0.6868284, 0.05091889, -0.4011163, 0.2717285, -0.06756835, 0.8307694, -0.7938535, 0.4352129, -0.4663842, 0.7165329, 0.559729, 0.8093995);
+                this._distributions[21] = new Array(0.07832243, 0.426151, -0.3856795, 0.5799953, 0.01970797, 0.06706189, 0.4822682, 0.3014512, -0.1532982, 0.87485, -0.4959527, 0.07888043, 0.260601, -0.2304784, 0.4996209, 0.7167382, 0.585986, -0.04265174, -0.7679967, 0.5509416, -0.9041753, 0.1802134, -0.8407655, -0.4442826, -0.2058258, -0.2636995, -0.4984115, -0.5928579, 0.2926032, -0.7886473, -0.06933882, -0.621177, 0.578115, -0.4813387, 0.8981777, -0.3291056, 0.1942733, 0.9255584, 0.8084362, 0.5066984, 0.9920095, 0.03103104, -0.2403206, -0.9389018);
+                this._distributions[22] = new Array(-0.5691095, 0.1014316, -0.7788262, 0.384012, -0.8253665, -0.1645582, -0.1830993, 0.002997211, -0.2555013, -0.4177977, -0.6640869, -0.4794711, -0.2351242, 0.5850121, 0.02436554, 0.2825883, 0.006061143, -0.8200245, 0.1618791, -0.3063331, -0.3765897, -0.7249815, 0.6092919, -0.6769328, -0.5956934, 0.6957655, 0.5383642, 0.4522677, -0.1489165, 0.9125596, 0.4167473, 0.1335986, 0.1898309, 0.5874342, 0.2288171, 0.9624356, 0.7540846, -0.07672304, 0.8986252, 0.2788797, 0.3555991, -0.9262139, 0.8454325, -0.4027667, 0.4945236, -0.2935512);
+                this._distributions[23] = new Array(-0.4481403, -0.3758374, -0.8877251, 0.08739938, 0.05015831, -0.1339983, -0.4070427, -0.8534173, 0.1019274, -0.5503222, -0.445998, 0.1997541, -0.8686263, -0.2788867, -0.7695944, -0.6033704, -0.05515742, -0.885711, -0.7714347, 0.5790485, 0.3466263, -0.8799297, 0.4487582, -0.5321087, -0.2461368, 0.6053771, -0.05568117, 0.2457351, -0.4668669, 0.8523816, 0.8103387, -0.4255538, 0.4054182, -0.175663, -0.2802011, -0.08920153, 0.2665959, 0.382935, 0.555679, 0.1621837, 0.105246, 0.8420411, 0.6921161, 0.6902903, 0.880946, 0.2483067, 0.9699264, -0.1021767);
+                this._distributions[24] = new Array(-0.1703323, -0.3119385, 0.2916039, -0.2988263, -0.008472982, -0.9277695, -0.7730271, -0.3277904, 0.3440474, -0.6815342, -0.2910278, 0.03461745, -0.6764899, -0.657078, -0.3505501, -0.7311988, -0.03478927, 0.3258755, -0.6048835, 0.159423, 0.2035525, 0.02212214, 0.5116573, 0.2226856, 0.6664805, -0.2500189, 0.7147882, -0.6609634, 0.03030632, -0.5763278, -0.2516585, 0.6116219, -0.9434413, -0.0116792, 0.9061816, 0.2491155, 0.182867, 0.6076167, 0.286593, 0.9485695, -0.5992439, 0.6970096, -0.2082874, 0.9416641, 0.9880044, -0.1541709, -0.9122881, 0.331555, 0.7324886, 0.6725098);
+                this._distributions[25] = new Array(0.3869598, -0.04974834, 0.7168844, -0.0693711, -0.07166742, 0.1725325, 0.4599592, 0.3232779, 0.5872094, -0.4198674, 0.2442266, -0.625667, 0.1254557, 0.4500048, -0.2290154, -0.1803567, 0.890583, 0.3373493, 0.1256081, 0.7853789, -0.2676466, 0.5305805, -0.7063224, 0.252168, -0.3989835, 0.1189921, 0.09617215, -0.2451447, 0.6302541, 0.6085876, 0.9380925, -0.3234899, 0.5086241, -0.8573482, 0.03576187, -0.9876697, -0.0876712, -0.6365195, -0.5276513, 0.823456, -0.6935764, -0.2240411, -0.5212318, -0.5383121, -0.2116208, 0.9639363, -0.9840096, 0.02743555, -0.3991577, -0.8994547, -0.7830126, 0.614068);
+                this._distributions[26] = new Array(-0.8366601, 0.4464895, -0.5917366, -0.02073906, -0.9845258, 0.1635625, -0.3097973, 0.4379579, -0.5478154, 0.7173221, -0.1685888, 0.9261969, 0.01503595, 0.6046097, 0.4452421, 0.5449086, 0.0315687, 0.1944619, 0.3753404, 0.8688548, 0.4143643, 0.1396648, 0.8711032, 0.4304703, 0.7328773, 0.1461501, 0.6374492, -0.3521495, 0.145613, -0.1341466, 0.9040975, -0.135123, -0.7839059, -0.5450199, -0.516019, -0.3320859, -0.206158, -0.4431106, -0.9703014, -0.2368356, -0.2473119, -0.0864351, 0.2130725, -0.4604077, -0.003726701, -0.7122303, -0.4072131, -0.6833169, 0.1632999, -0.9776646, 0.4686888, -0.680495, -0.2293511, -0.9509777);
+                this._distributions[27] = new Array(0.107311, -0.1311369, -0.4194764, -0.3148777, 0.6171439, -0.2745973, 0.2796618, 0.1937153, -0.09106886, 0.4180236, 0.6044006, 0.05577846, 0.02927299, -0.6738263, -0.2580845, 0.1179939, -0.09023564, -0.3830024, 0.3570953, -0.5000587, 0.81591, -0.5518309, 0.9300217, -0.1257987, 0.4904627, -0.8381903, -0.3163182, -0.8632009, 0.1137595, -0.9875998, 0.8390043, 0.3538185, 0.2149114, 0.4993694, 0.5191584, 0.3833552, 0.5002763, 0.7061465, -0.2567276, 0.9068756, -0.5197366, 0.3467845, 0.03668867, 0.9734009, -0.5347553, 0.66747, -0.9028882, 0.1023768, -0.8967977, 0.412834, -0.5821944, 0.0426479, -0.8032165, -0.2397038, -0.5597343, -0.6358021);
+                this._distributions[28] = new Array(-0.6562496, -0.1781036, -0.9301494, 0.1185208, -0.3861143, -0.4153562, -0.1560799, -0.1099607, -0.5587025, 0.395218, -0.5322112, -0.699701, -0.5008639, 0.08726846, -0.970524, -0.1963461, -0.813577, -0.5185111, -0.1644458, 0.298, -0.3216791, 0.639982, 0.3315373, 0.3339162, 0.2383235, -0.00105722, 0.1137828, 0.5450742, -0.01899921, 0.8798413, 0.2849685, 0.8255596, 0.6974412, 0.2123175, 0.7588523, 0.5470437, 0.5102502, -0.1687844, 0.5853448, 0.8033476, 0.2590716, -0.5262504, 0.5607718, -0.6342825, 0.8666443, -0.1491841, 0.8341052, -0.4935003, -0.1568441, -0.6634066, 0.2512113, -0.8769391, -0.2559827, -0.9572457, -0.01928852, -0.3966542, -0.750667, 0.6409678);
+                this._distributions[29] = new Array(0.3454786, -0.04837726, 0.2649553, 0.2406852, 0.5599093, -0.3839145, -0.1111814, -0.05502108, 0.7586042, -0.05818377, 0.2519488, -0.4665135, -0.1264972, 0.2602723, -0.08766216, -0.3671907, 0.6428129, 0.3999204, -0.6105871, -0.1246869, -0.4589451, -0.7646643, -0.03021116, -0.7899352, -0.6036922, -0.4293956, -0.2481938, 0.6534185, 0.102798, 0.6784465, -0.6392644, 0.4821358, -0.6789002, 0.1779133, -0.9140783, -0.1989647, -0.9262617, 0.3381507, 0.4794891, -0.8093274, 0.3959447, 0.668478, 0.9602883, 0.2272305, -0.123672, 0.9210883, 0.2375148, 0.9523395, -0.52898, 0.7973378, -0.382433, 0.1228794, 0.695015, 0.6948439, 0.7530277, -0.6458191, 0.8777987, -0.3272956, 0.2318525, -0.962768);
+                this._distributions[30] = new Array(0.4518921, -0.1146195, 0.4720805, -0.4238748, 0.3655423, 0.1806341, 0.1589939, -0.23568, 0.7673324, -0.5149941, 0.01163658, 0.09045836, 0.7010971, 0.1245747, 0.7518286, -0.1855433, 0.4960719, 0.4601022, 0.2566979, -0.6308268, -0.0654714, -0.5126389, -0.1823319, -0.1343282, -0.1464312, 0.4883236, -0.3858738, 0.203523, 0.1484799, 0.4432284, -0.477109, -0.116241, 0.2719092, 0.7208626, 0.9104174, 0.3578536, -0.5956199, 0.7662588, -0.6996251, 0.3678654, -0.2514512, 0.9251933, 0.1275825, -0.9478135, -0.204608, -0.8611552, 0.4264838, -0.877443, 0.9854161, 0.05521112, 0.5912951, 0.7997434, 0.1140349, 0.982093, -0.9324368, -0.2094094, -0.42436, -0.6441524, -0.6722705, -0.3554261, -0.7844236, 0.08587621);
+                this._distributions[31] = new Array(-0.4206714, -0.5613642, -0.8733016, -0.3373051, -0.1046226, -0.2902999, -0.1318562, -0.8434365, 0.1145093, -0.5962623, -0.4965627, -0.1873259, -0.5011808, -0.8546229, -0.7165636, -0.5743566, 0.1090901, 0.2017643, 0.3404809, -0.220455, -0.1989015, 0.2372122, -0.4538706, 0.0979171, 0.4514146, -0.572846, 0.2314168, -0.8514503, -0.4247236, 0.5650803, -0.943347, 0.04514639, -0.1309718, 0.5221877, -0.7004157, 0.4561877, 0.6306441, 0.04448673, 0.4301621, 0.5766876, 0.1078042, 0.7245752, 0.3875354, 0.2794483, 0.702876, -0.2924213, 0.7360667, -0.6210318, 0.7486517, 0.6531103, 0.4898235, 0.8591025, 0.6549174, 0.3854057, -0.2596106, 0.7916998, 0.9251194, -0.05296265, -0.5620695, 0.820877, -0.01228026, 0.9937211, 0.9612103, 0.2628758);
+            };
+
+            PoissonLookup.getDistribution = function (n/*int*/ ) {
+                if (!this._distributions)
+                    this.initDistributions();
+
+                if (n < 2 || n > 32)
+                    return null;
+
+                return this._distributions[n - 1];
+            };
+            return PoissonLookup;
+        })();
+        math.PoissonLookup = PoissonLookup;
+    })(away.math || (away.math = {}));
+    var math = away.math;
+})(away || (away = {}));
+var away;
+(function (away) {
     ///<reference path="../_definitions.ts"/>
     /**
     * @module away.events
@@ -2840,7 +2897,7 @@ var away;
                 * Defines the position of the 3d object, relative to the local coordinates of the parent <code>ObjectContainer3D</code>.
                 */
                 function () {
-                    this._pTransform.copyColumnTo(3, this._pPos);
+                    this.transform.copyColumnTo(3, this._pPos);
 
                     return this._pPos.clone();
                 },
@@ -3131,8 +3188,16 @@ var away;
             * @param    angle        The amount of rotation in degrees
             */
             Object3D.prototype.rotate = function (axis, angle) {
-                this.transform.prependRotation(angle, axis);
-                this.transform = this.transform;
+                var m = new away.geom.Matrix3D();
+                m.prependRotation(angle, axis);
+
+                var vec = m.decompose()[1];
+
+                this._rotationX += vec.x;
+                this._rotationY += vec.y;
+                this._rotationZ += vec.z;
+
+                this.invalidateRotation();
             };
 
             /**
@@ -3158,42 +3223,38 @@ var away;
                 xAxis = upAxis.crossProduct(zAxis);
                 xAxis.normalize();
 
-                if (xAxis.length < .05)
+                if (isNaN(xAxis.length) || xAxis.length < .05)
                     xAxis = upAxis.crossProduct(away.geom.Vector3D.Z_AXIS);
 
                 yAxis = zAxis.crossProduct(xAxis);
 
                 raw = away.math.Matrix3DUtils.RAW_DATA_CONTAINER;
 
-                raw[0] = this._pScaleX * xAxis.x;
-                raw[1] = this._pScaleX * xAxis.y;
-                raw[2] = this._pScaleX * xAxis.z;
+                raw[0] = xAxis.x;
+                raw[1] = xAxis.y;
+                raw[2] = xAxis.z;
                 raw[3] = 0;
 
-                raw[4] = this._pScaleY * yAxis.x;
-                raw[5] = this._pScaleY * yAxis.y;
-                raw[6] = this._pScaleY * yAxis.z;
+                raw[4] = yAxis.x;
+                raw[5] = yAxis.y;
+                raw[6] = yAxis.z;
                 raw[7] = 0;
 
-                raw[8] = this._pScaleZ * zAxis.x;
-                raw[9] = this._pScaleZ * zAxis.y;
-                raw[10] = this._pScaleZ * zAxis.z;
+                raw[8] = zAxis.x;
+                raw[9] = zAxis.y;
+                raw[10] = zAxis.z;
                 raw[11] = 0;
 
-                raw[12] = this._x;
-                raw[13] = this._y;
-                raw[14] = this._z;
-                raw[15] = 1;
+                var m = new away.geom.Matrix3D();
+                m.copyRawDataFrom(raw);
 
-                this._pTransform.copyRawDataFrom(raw);
+                var vec = m.decompose()[1];
 
-                this.transform = this.transform;
+                this._rotationX = vec.x;
+                this._rotationY = vec.y;
+                this._rotationZ = vec.z;
 
-                if (zAxis.z < 0) {
-                    this.rotationY = (180 - this.rotationY);
-                    this.rotationX -= 180;
-                    this.rotationZ -= 180;
-                }
+                this.invalidateRotation();
             };
 
             /**
@@ -4286,6 +4347,32 @@ var away;
                 }
             };
 
+            BitmapData.prototype.setVector = function (rect, inputVector) {
+                if (!this._locked) {
+                    this._imageData = this._context.getImageData(0, 0, this._rect.width, this._rect.height);
+                }
+
+                if (this._imageData) {
+                    var i/*uint*/ , j, index, argb;
+                    for (i = 0; i < rect.width; ++i) {
+                        for (j = 0; j < rect.height; ++j) {
+                            argb = away.utils.ColorUtils.float32ColorToARGB(i + j * rect.width);
+                            index = (i + rect.x + (j + rect.y) * this._imageCanvas.width) * 4;
+
+                            this._imageData.data[index + 0] = argb[1];
+                            this._imageData.data[index + 1] = argb[2];
+                            this._imageData.data[index + 2] = argb[3];
+                            this._imageData.data[index + 3] = argb[0];
+                        }
+                    }
+                }
+
+                if (!this._locked) {
+                    this._context.putImageData(this._imageData, 0, 0);
+                    this._imageData = null;
+                }
+            };
+
             BitmapData.prototype.drawImage = function (img, sourceRect, destRect) {
                 if (this._locked) {
                     if (this._imageData) {
@@ -4541,6 +4628,14 @@ var away;
                 configurable: true
             });
 
+            Object.defineProperty(Texture.prototype, "frameBuffer", {
+                get: function () {
+                    return this._frameBuffer;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
             Texture.prototype.uploadFromHTMLImageElement = function (image, miplevel) {
                 if (typeof miplevel === "undefined") { miplevel = 0; }
                 this._gl.bindTexture(this._gl.TEXTURE_2D, this._glTexture);
@@ -4562,6 +4657,38 @@ var away;
                 enumerable: true,
                 configurable: true
             });
+
+            Texture.prototype.generateFromRenderBuffer = function (data) {
+                this._frameBuffer = this._gl.createFramebuffer();
+                this._gl.bindFramebuffer(this._gl.FRAMEBUFFER, this._frameBuffer);
+                this._frameBuffer.width = this._width;
+                this._frameBuffer.height = this._height;
+
+                this._gl.bindTexture(this._gl.TEXTURE_2D, this._glTexture);
+                this._gl.texParameteri(this._gl.TEXTURE_2D, this._gl.TEXTURE_MAG_FILTER, this._gl.LINEAR);
+                this._gl.texParameteri(this._gl.TEXTURE_2D, this._gl.TEXTURE_MIN_FILTER, this._gl.LINEAR_MIPMAP_NEAREST);
+
+                //this._gl.generateMipmap(this._gl.TEXTURE_2D);
+                //this._gl.texImage2D( this._gl.TEXTURE_2D, 0, this._gl.RGBA, this._gl.RGBA, this._gl.UNSIGNED_BYTE, data.imageData );
+                this._gl.texImage2D(this._gl.TEXTURE_2D, 0, this._gl.RGBA, this._width, this._height, 0, this._gl.RGBA, this._gl.UNSIGNED_BYTE, null);
+
+                var renderBuffer = this._gl.createRenderbuffer();
+                this._gl.bindRenderbuffer(this._gl.RENDERBUFFER, renderBuffer);
+                this._gl.renderbufferStorage(this._gl.RENDERBUFFER, this._gl.DEPTH_COMPONENT16, this._width, this._height);
+
+                this._gl.framebufferTexture2D(this._gl.FRAMEBUFFER, this._gl.COLOR_ATTACHMENT0, this._gl.TEXTURE_2D, this._glTexture, 0);
+                this._gl.framebufferRenderbuffer(this._gl.FRAMEBUFFER, this._gl.DEPTH_ATTACHMENT, this._gl.RENDERBUFFER, renderBuffer);
+
+                this._gl.bindTexture(this._gl.TEXTURE_2D, null);
+                this._gl.bindRenderbuffer(this._gl.RENDERBUFFER, null);
+                this._gl.bindFramebuffer(this._gl.FRAMEBUFFER, null);
+            };
+
+            Texture.prototype.generateMipmaps = function () {
+                //this._gl.bindTexture( this._gl.TEXTURE_2D, this._glTexture );
+                //this._gl.generateMipmap(this._gl.TEXTURE_2D);
+                //this._gl.bindTexture( this._gl.TEXTURE_2D, null );
+            };
             return Texture;
         })(display3D.TextureBase);
         display3D.Texture = Texture;
@@ -5408,6 +5535,28 @@ var away;
 
                 this._gl.enableVertexAttribArray(location);
                 this._gl.vertexAttribPointer(location, dimension, type, false, buffer.data32PerVertex * numBytes, bufferOffset * numBytes);
+            };
+
+            Context3D.prototype.setRenderToTexture = function (target, enableDepthAndStencil, antiAlias, surfaceSelector) {
+                if (typeof enableDepthAndStencil === "undefined") { enableDepthAndStencil = false; }
+                if (typeof antiAlias === "undefined") { antiAlias = 0; }
+                if (typeof surfaceSelector === "undefined") { surfaceSelector = 0; }
+                var frameBuffer = (target).frameBuffer;
+                this._gl.bindFramebuffer(this._gl.FRAMEBUFFER, frameBuffer);
+
+                if (enableDepthAndStencil) {
+                    this._gl.enable(this._gl.STENCIL_TEST);
+                    this._gl.enable(this._gl.DEPTH_TEST);
+                }
+
+                this._gl.viewport.width = frameBuffer.width;
+                this._gl.viewport.height = frameBuffer.height;
+
+                this._gl.viewport(0, 0, frameBuffer.width, frameBuffer.height);
+            };
+
+            Context3D.prototype.setRenderToBackBuffer = function () {
+                this._gl.bindFramebuffer(this._gl.FRAMEBUFFER, null);
             };
 
             Context3D.prototype.updateBlendStatus = function () {
@@ -9991,16 +10140,6 @@ var away;
 (function (away) {
     ///<reference path="../_definitions.ts"/>
     (function (entities) {
-        //import away3d.materials.utils.DefaultMaterialManager;
-        //import away3d.animators.IAnimator;
-        //import away3d.arcane;
-        //import away3d.containers.*;
-        //import away3d.core.base.*;
-        //import away3d.core.partition.*;
-        //import away3d.events.*;
-        //import away3d.library.assets.*;
-        //import away3d.materials.*;
-        //use namespace arcane;
         /**
         * Mesh is an instance of a Geometry, augmenting it with a presence in the scene graph, a material, and an animation
         * state. It consists out of SubMeshes, which in turn correspond to SubGeometries. SubMeshes allow different parts
@@ -10074,35 +10213,30 @@ var away;
                     return this._animator;
                 },
                 set: function (value) {
-                    away.Debug.throwPIR('Mesh', 'set animator', 'Partial Implementation');
-                    /*
-                    if (_animator)
-                    _animator.removeOwner(this);
-                    
-                    _animator = value;
-                    
+                    if (this._animator)
+                        this._animator.removeOwner(this);
+
+                    this._animator = value;
+
                     // cause material to be unregistered and registered again to work with the new animation type (if possible)
-                    var oldMaterial:MaterialBase = material;
-                    material = null;
-                    material = oldMaterial;
-                    
-                    var len:number = _subMeshes.length;
-                    var subMesh:SubMesh;
-                    
-                    // reassign for each SubMesh
-                    for (var i:number = 0; i < len; ++i) {
-                    subMesh = _subMeshes[i];
-                    oldMaterial = subMesh._material;
-                    if (oldMaterial) {
-                    subMesh.material = null;
-                    subMesh.material = oldMaterial;
+                    var oldMaterial = this.material;
+                    this.material = null;
+                    this.material = oldMaterial;
+
+                    var len = this._subMeshes.length;
+                    var subMesh;
+
+                    for (var i = 0; i < len; ++i) {
+                        subMesh = this._subMeshes[i];
+                        oldMaterial = subMesh._iMaterial;
+                        if (oldMaterial) {
+                            subMesh.material = null;
+                            subMesh.material = oldMaterial;
+                        }
                     }
-                    }
-                    
-                    if (_animator)
-                    _animator.addOwner(this);
-                    
-                    */
+
+                    if (this._animator)
+                        this._animator.addOwner(this);
                 },
                 enumerable: true,
                 configurable: true
@@ -10294,7 +10428,7 @@ var away;
 
                 var len = this._subMeshes.length;
                 for (var i = 0; i < len; ++i) {
-                    clone._subMeshes[i].material = this._subMeshes[i].material;
+                    clone._subMeshes[i]._iMaterial = this._subMeshes[i]._iMaterial;
                 }
 
                 len = this.numChildren;
@@ -10305,14 +10439,10 @@ var away;
                     clone.addChild(obj);
                 }
 
-                /* TODO: implement dependency IAnimator
-                if ( this._animator)
-                {
-                
-                clone.animator = this._animator.clone();
-                
+                if (this._animator) {
+                    clone.animator = this._animator.clone();
                 }
-                */
+
                 return clone;
             };
 
@@ -12525,6 +12655,10 @@ var away;
                 return true;
             };
 
+            NodeBase.prototype.isCastingShadow = function () {
+                return true;
+            };
+
             NodeBase.prototype.findPartitionForEntity = function (entity) {
                 entity = entity;
                 return this;
@@ -12845,6 +12979,10 @@ var away;
                     traverser.applyDirectionalLight(this._light);
                 }
             };
+
+            DirectionalLightNode.prototype.isCastingShadow = function () {
+                return false;
+            };
             return DirectionalLightNode;
         })(away.partition.EntityNode);
         partition.DirectionalLightNode = DirectionalLightNode;
@@ -12874,6 +13012,10 @@ var away;
                     _super.prototype.acceptTraverser.call(this, traverser);
                     traverser.applyPointLight(this._light);
                 }
+            };
+
+            PointLightNode.prototype.isCastingShadow = function () {
+                return false;
             };
             return PointLightNode;
         })(away.partition.EntityNode);
@@ -12957,6 +13099,10 @@ var away;
                         traverser.applyRenderable(subs[i++]);
                     }
                 }
+            };
+
+            MeshNode.prototype.isCastingShadow = function () {
+                return this._mesh.castsShadows;
             };
             return MeshNode;
         })(away.partition.EntityNode);
@@ -15733,8 +15879,7 @@ var away;
 
                     this.retrieveNext(parser);
                 } else {
-                    //console.log( 'AssetLoader.retrieveNext - away.events.LoaderEvent.RESOURCE_COMPLETE');
-                    this.dispatchEvent(new away.events.LoaderEvent(away.events.LoaderEvent.RESOURCE_COMPLETE, this._uri));
+                    this.dispatchEvent(new away.events.LoaderEvent(away.events.LoaderEvent.RESOURCE_COMPLETE, this._uri, this._baseDependency.assets));
                 }
             };
 
@@ -15767,7 +15912,7 @@ var away;
                     if (this._loadingDependency.retrieveAsRawData) {
                         // No need to parse. The parent parser is expecting this
                         // to be raw data so it can be passed directly.
-                        this.dispatchEvent(new away.events.LoaderEvent(away.events.LoaderEvent.DEPENDENCY_COMPLETE, this._loadingDependency.request.url, true));
+                        this.dispatchEvent(new away.events.LoaderEvent(away.events.LoaderEvent.DEPENDENCY_COMPLETE, this._loadingDependency.request.url, this._baseDependency.assets, true));
                         this._loadingDependency._iSetData(data);
                         this._loadingDependency.resolve();
 
@@ -15871,7 +16016,7 @@ else
 
                 this.removeEventListeners(loader);
 
-                event = new away.events.LoaderEvent(away.events.LoaderEvent.LOAD_ERROR, this._uri, isDependency, event.message);
+                event = new away.events.LoaderEvent(away.events.LoaderEvent.LOAD_ERROR, this._uri, this._baseDependency.assets, isDependency, event.message);
 
                 // TODO: JS / AS3 Change - debug this code with a fine tooth combe
                 //if (this.hasEventListener( away.events.LoaderEvent.LOAD_ERROR , this )) {
@@ -15980,7 +16125,7 @@ else
                 this._loadingDependency._iSetData(loader.data);
                 this._loadingDependency._iSuccess = true;
 
-                this.dispatchEvent(new away.events.LoaderEvent(away.events.LoaderEvent.DEPENDENCY_COMPLETE, event.url));
+                this.dispatchEvent(new away.events.LoaderEvent(away.events.LoaderEvent.DEPENDENCY_COMPLETE, event.url, this._baseDependency.assets));
                 this.removeEventListeners(loader);
 
                 if (loader.dependencies.length && (!this._context || this._context.includeDependencies)) {
@@ -16882,13 +17027,15 @@ var away;
             * @param resource The loaded or parsed resource.
             * @param url The url of the loaded resource.
             */
-            function LoaderEvent(type, url, isDependency, errmsg) {
+            function LoaderEvent(type, url, assets, isDependency, errmsg) {
                 if (typeof url === "undefined") { url = null; }
+                if (typeof assets === "undefined") { assets = null; }
                 if (typeof isDependency === "undefined") { isDependency = false; }
                 if (typeof errmsg === "undefined") { errmsg = null; }
                 _super.call(this, type);
 
                 this._url = url;
+                this._assets = assets;
                 this._message = errmsg;
                 this._isDependency = isDependency;
             }
@@ -16898,6 +17045,17 @@ var away;
                 */
                 function () {
                     return this._url;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            Object.defineProperty(LoaderEvent.prototype, "assets", {
+                get: /**
+                * The error string on loadError.
+                */
+                function () {
+                    return this._assets;
                 },
                 enumerable: true,
                 configurable: true
@@ -16932,7 +17090,7 @@ var away;
             * @return An exact duplicate of the current event.
             */
             LoaderEvent.prototype.clone = function () {
-                return new LoaderEvent(this.type, this._url, this._isDependency, this._message);
+                return new LoaderEvent(this.type, this._url, this._assets, this._isDependency, this._message);
             };
             LoaderEvent.LOAD_ERROR = "loadError";
 
@@ -17177,6 +17335,417 @@ var AssetLibrarySingletonEnforcer = (function () {
     }
     return AssetLibrarySingletonEnforcer;
 })();
+var away;
+(function (away) {
+    ///<reference path="../_definitions.ts"/>
+    (function (loaders) {
+        /**
+        * Dispatched when any asset finishes parsing. Also see specific events for each
+        * individual asset type (meshes, materials et c.)
+        *
+        * @eventType away3d.events.AssetEvent
+        */
+        //[Event(name="assetComplete", type="away3d.events.AssetEvent")]
+        /**
+        * Dispatched when a full resource (including dependencies) finishes loading.
+        *
+        * @eventType away3d.events.LoaderEvent
+        */
+        //[Event(name="resourceComplete", type="away3d.events.LoaderEvent")]
+        /**
+        * Dispatched when a single dependency (which may be the main file of a resource)
+        * finishes loading.
+        *
+        * @eventType away3d.events.LoaderEvent
+        */
+        //[Event(name="dependencyComplete", type="away3d.events.LoaderEvent")]
+        /**
+        * Dispatched when an error occurs during loading. I
+        *
+        * @eventType away3d.events.LoaderEvent
+        */
+        //[Event(name="loadError", type="away3d.events.LoaderEvent")]
+        /**
+        * Dispatched when an error occurs during parsing.
+        *
+        * @eventType away3d.events.ParserEvent
+        */
+        //[Event(name="parseError", type="away3d.events.ParserEvent")]
+        /**
+        * Dispatched when a skybox asset has been costructed from a ressource.
+        *
+        * @eventType away3d.events.AssetEvent
+        */
+        //[Event(name="skyboxComplete", type="away3d.events.AssetEvent")]
+        /**
+        * Dispatched when a camera3d asset has been costructed from a ressource.
+        *
+        * @eventType away3d.events.AssetEvent
+        */
+        //[Event(name="cameraComplete", type="away3d.events.AssetEvent")]
+        /**
+        * Dispatched when a mesh asset has been costructed from a ressource.
+        *
+        * @eventType away3d.events.AssetEvent
+        */
+        //[Event(name="meshComplete", type="away3d.events.AssetEvent")]
+        /**
+        * Dispatched when a geometry asset has been constructed from a resource.
+        *
+        * @eventType away3d.events.AssetEvent
+        */
+        //[Event(name="geometryComplete", type="away3d.events.AssetEvent")]
+        /**
+        * Dispatched when a skeleton asset has been constructed from a resource.
+        *
+        * @eventType away3d.events.AssetEvent
+        */
+        //[Event(name="skeletonComplete", type="away3d.events.AssetEvent")]
+        /**
+        * Dispatched when a skeleton pose asset has been constructed from a resource.
+        *
+        * @eventType away3d.events.AssetEvent
+        */
+        //[Event(name="skeletonPoseComplete", type="away3d.events.AssetEvent")]
+        /**
+        * Dispatched when a container asset has been constructed from a resource.
+        *
+        * @eventType away3d.events.AssetEvent
+        */
+        //[Event(name="containerComplete", type="away3d.events.AssetEvent")]
+        /**
+        * Dispatched when a texture asset has been constructed from a resource.
+        *
+        * @eventType away3d.events.AssetEvent
+        */
+        //[Event(name="textureComplete", type="away3d.events.AssetEvent")]
+        /**
+        * Dispatched when a texture projector asset has been constructed from a resource.
+        *
+        * @eventType away3d.events.AssetEvent
+        */
+        //[Event(name="textureProjectorComplete", type="away3d.events.AssetEvent")]
+        /**
+        * Dispatched when a material asset has been constructed from a resource.
+        *
+        * @eventType away3d.events.AssetEvent
+        */
+        //[Event(name="materialComplete", type="away3d.events.AssetEvent")]
+        /**
+        * Dispatched when a animator asset has been constructed from a resource.
+        *
+        * @eventType away3d.events.AssetEvent
+        */
+        //[Event(name="animatorComplete", type="away3d.events.AssetEvent")]
+        /**
+        * Dispatched when an animation set has been constructed from a group of animation state resources.
+        *
+        * @eventType away3d.events.AssetEvent
+        */
+        //[Event(name="animationSetComplete", type="away3d.events.AssetEvent")]
+        /**
+        * Dispatched when an animation state has been constructed from a group of animation node resources.
+        *
+        * @eventType away3d.events.AssetEvent
+        */
+        //[Event(name="animationStateComplete", type="away3d.events.AssetEvent")]
+        /**
+        * Dispatched when an animation node has been constructed from a resource.
+        *
+        * @eventType away3d.events.AssetEvent
+        */
+        //[Event(name="animationNodeComplete", type="away3d.events.AssetEvent")]
+        /**
+        * Dispatched when an animation state transition has been constructed from a group of animation node resources.
+        *
+        * @eventType away3d.events.AssetEvent
+        */
+        //[Event(name="stateTransitionComplete", type="away3d.events.AssetEvent")]
+        /**
+        * Dispatched when an light asset has been constructed from a resources.
+        *
+        * @eventType away3d.events.AssetEvent
+        */
+        //[Event(name="lightComplete", type="away3d.events.AssetEvent")]
+        /**
+        * Dispatched when an light picker asset has been constructed from a resources.
+        *
+        * @eventType away3d.events.AssetEvent
+        */
+        //[Event(name="lightPickerComplete", type="away3d.events.AssetEvent")]
+        /**
+        * Dispatched when an effect method asset has been constructed from a resources.
+        *
+        * @eventType away3d.events.AssetEvent
+        */
+        //[Event(name="effectMethodComplete", type="away3d.events.AssetEvent")]
+        /**
+        * Dispatched when an shadow map method asset has been constructed from a resources.
+        *
+        * @eventType away3d.events.AssetEvent
+        */
+        //[Event(name="shadowMapMethodComplete", type="away3d.events.AssetEvent")]
+        /**
+        * Dispatched when an image asset dimensions are not a power of 2
+        *
+        * @eventType away3d.events.AssetEvent
+        */
+        //[Event(name="textureSizeError", type="away3d.events.AssetEvent")]
+        /**
+        * Loader3D can load any file format that Away3D supports (or for which a third-party parser
+        * has been plugged in) and be added directly to the scene. As assets are encountered
+        * they are added to the Loader3D container. Assets that can not be displayed in the scene
+        * graph (e.g. unused bitmaps/materials/skeletons etc) will be ignored.
+        *
+        * This provides a fast and easy way to load models (no need for event listeners) but is not
+        * very versatile since many types of assets are ignored.
+        *
+        * Loader3D by default uses the AssetLibrary to load all assets, which means that they also
+        * ends up in the library. To circumvent this, Loader3D can be configured to not use the
+        * AssetLibrary in which case it will use the AssetLoader directly.
+        *
+        * @see away3d.loaders.AssetLoader
+        * @see away3d.library.AssetLibrary
+        */
+        var Loader3D = (function (_super) {
+            __extends(Loader3D, _super);
+            function Loader3D(useAssetLibrary, assetLibraryId) {
+                if (typeof useAssetLibrary === "undefined") { useAssetLibrary = true; }
+                if (typeof assetLibraryId === "undefined") { assetLibraryId = null; }
+                _super.call(this);
+
+                this._loadingSessions = new Array();
+                this._useAssetLib = useAssetLibrary;
+                this._assetLibId = assetLibraryId;
+            }
+            /**
+            * Loads a file and (optionally) all of its dependencies.
+            *
+            * @param req The URLRequest object containing the URL of the file to be loaded.
+            * @param context An optional context object providing additional parameters for loading
+            * @param ns An optional namespace string under which the file is to be loaded, allowing the differentiation of two resources with identical assets
+            * @param parser An optional parser object for translating the loaded data into a usable resource. If not provided, AssetLoader will attempt to auto-detect the file type.
+            */
+            Loader3D.prototype.load = function (req, context, ns, parser) {
+                if (typeof context === "undefined") { context = null; }
+                if (typeof ns === "undefined") { ns = null; }
+                if (typeof parser === "undefined") { parser = null; }
+                var token;
+
+                if (this._useAssetLib) {
+                    var lib;
+                    lib = away.library.AssetLibraryBundle.getInstance(this._assetLibId);
+                    token = lib.load(req, context, ns, parser);
+                } else {
+                    var loader = new away.loaders.AssetLoader();
+                    this._loadingSessions.push(loader);
+                    token = loader.load(req, context, ns, parser);
+                }
+
+                token.addEventListener(away.events.LoaderEvent.RESOURCE_COMPLETE, this.onResourceRetrieved, this);
+                token.addEventListener(away.events.AssetEvent.ASSET_COMPLETE, this.onAssetComplete, this);
+                token.addEventListener(away.events.AssetEvent.ANIMATION_SET_COMPLETE, this.onAssetComplete, this);
+                token.addEventListener(away.events.AssetEvent.ANIMATION_STATE_COMPLETE, this.onAssetComplete, this);
+                token.addEventListener(away.events.AssetEvent.ANIMATION_NODE_COMPLETE, this.onAssetComplete, this);
+                token.addEventListener(away.events.AssetEvent.STATE_TRANSITION_COMPLETE, this.onAssetComplete, this);
+                token.addEventListener(away.events.AssetEvent.TEXTURE_COMPLETE, this.onAssetComplete, this);
+                token.addEventListener(away.events.AssetEvent.CONTAINER_COMPLETE, this.onAssetComplete, this);
+                token.addEventListener(away.events.AssetEvent.GEOMETRY_COMPLETE, this.onAssetComplete, this);
+                token.addEventListener(away.events.AssetEvent.MATERIAL_COMPLETE, this.onAssetComplete, this);
+                token.addEventListener(away.events.AssetEvent.MESH_COMPLETE, this.onAssetComplete, this);
+                token.addEventListener(away.events.AssetEvent.ENTITY_COMPLETE, this.onAssetComplete, this);
+                token.addEventListener(away.events.AssetEvent.SKELETON_COMPLETE, this.onAssetComplete, this);
+                token.addEventListener(away.events.AssetEvent.SKELETON_POSE_COMPLETE, this.onAssetComplete, this);
+
+                // Error are handled separately (see documentation for addErrorHandler)
+                token._iLoader._iAddErrorHandler(this.onDependencyRetrievingError);
+                token._iLoader._iAddParseErrorHandler(this.onDependencyRetrievingParseError);
+
+                return token;
+            };
+
+            /**
+            * Loads a resource from already loaded data.
+            *
+            * @param data The data object containing all resource information.
+            * @param context An optional context object providing additional parameters for loading
+            * @param ns An optional namespace string under which the file is to be loaded, allowing the differentiation of two resources with identical assets
+            * @param parser An optional parser object for translating the loaded data into a usable resource. If not provided, AssetLoader will attempt to auto-detect the file type.
+            */
+            Loader3D.prototype.loadData = function (data, context, ns, parser) {
+                if (typeof context === "undefined") { context = null; }
+                if (typeof ns === "undefined") { ns = null; }
+                if (typeof parser === "undefined") { parser = null; }
+                var token;
+
+                if (this._useAssetLib) {
+                    var lib;
+                    lib = away.library.AssetLibraryBundle.getInstance(this._assetLibId);
+                    token = lib.loadData(data, context, ns, parser);
+                } else {
+                    var loader = new away.loaders.AssetLoader();
+                    this._loadingSessions.push(loader);
+                    token = loader.loadData(data, '', context, ns, parser);
+                }
+
+                token.addEventListener(away.events.LoaderEvent.RESOURCE_COMPLETE, this.onResourceRetrieved, this);
+                token.addEventListener(away.events.AssetEvent.ASSET_COMPLETE, this.onAssetComplete, this);
+                token.addEventListener(away.events.AssetEvent.ANIMATION_SET_COMPLETE, this.onAssetComplete, this);
+                token.addEventListener(away.events.AssetEvent.ANIMATION_STATE_COMPLETE, this.onAssetComplete, this);
+                token.addEventListener(away.events.AssetEvent.ANIMATION_NODE_COMPLETE, this.onAssetComplete, this);
+                token.addEventListener(away.events.AssetEvent.STATE_TRANSITION_COMPLETE, this.onAssetComplete, this);
+                token.addEventListener(away.events.AssetEvent.TEXTURE_COMPLETE, this.onAssetComplete, this);
+                token.addEventListener(away.events.AssetEvent.CONTAINER_COMPLETE, this.onAssetComplete, this);
+                token.addEventListener(away.events.AssetEvent.GEOMETRY_COMPLETE, this.onAssetComplete, this);
+                token.addEventListener(away.events.AssetEvent.MATERIAL_COMPLETE, this.onAssetComplete, this);
+                token.addEventListener(away.events.AssetEvent.MESH_COMPLETE, this.onAssetComplete, this);
+                token.addEventListener(away.events.AssetEvent.ENTITY_COMPLETE, this.onAssetComplete, this);
+                token.addEventListener(away.events.AssetEvent.SKELETON_COMPLETE, this.onAssetComplete, this);
+                token.addEventListener(away.events.AssetEvent.SKELETON_POSE_COMPLETE, this.onAssetComplete, this);
+
+                // Error are handled separately (see documentation for addErrorHandler)
+                token._iLoader._iAddErrorHandler(this.onDependencyRetrievingError);
+                token._iLoader._iAddParseErrorHandler(this.onDependencyRetrievingParseError);
+
+                return token;
+            };
+
+            /**
+            * Stop the current loading/parsing process.
+            */
+            Loader3D.prototype.stopLoad = function () {
+                if (this._useAssetLib) {
+                    var lib;
+                    lib = away.library.AssetLibraryBundle.getInstance(this._assetLibId);
+                    lib.stopAllLoadingSessions();
+                    this._loadingSessions = null;
+                    return;
+                }
+                var i/*int*/ ;
+                var length = this._loadingSessions.length;
+                for (i = 0; i < length; i++) {
+                    this.removeListeners(this._loadingSessions[i]);
+                    this._loadingSessions[i].stop();
+                    this._loadingSessions[i] = null;
+                }
+                this._loadingSessions = null;
+            };
+
+            Loader3D.enableParser = /**
+            * Enables a specific parser.
+            * When no specific parser is set for a loading/parsing opperation,
+            * loader3d can autoselect the correct parser to use.
+            * A parser must have been enabled, to be considered when autoselecting the parser.
+            *
+            * @param parserClass The parser class to enable.
+            * @see away3d.loaders.parsers.Parsers
+            */
+            function (parserClass) {
+                away.loaders.SingleFileLoader.enableParser(parserClass);
+            };
+
+            Loader3D.enableParsers = /**
+            * Enables a list of parsers.
+            * When no specific parser is set for a loading/parsing opperation,
+            * loader3d can autoselect the correct parser to use.
+            * A parser must have been enabled, to be considered when autoselecting the parser.
+            *
+            * @param parserClasses A Vector of parser classes to enable.
+            * @see away3d.loaders.parsers.Parsers
+            */
+            function (parserClasses) {
+                away.loaders.SingleFileLoader.enableParsers(parserClasses);
+            };
+
+            Loader3D.prototype.removeListeners = function (dispatcher) {
+                dispatcher.removeEventListener(away.events.LoaderEvent.RESOURCE_COMPLETE, this.onResourceRetrieved, this);
+                dispatcher.removeEventListener(away.events.AssetEvent.ASSET_COMPLETE, this.onAssetComplete, this);
+                dispatcher.removeEventListener(away.events.AssetEvent.ANIMATION_SET_COMPLETE, this.onAssetComplete, this);
+                dispatcher.removeEventListener(away.events.AssetEvent.ANIMATION_STATE_COMPLETE, this.onAssetComplete, this);
+                dispatcher.removeEventListener(away.events.AssetEvent.ANIMATION_NODE_COMPLETE, this.onAssetComplete, this);
+                dispatcher.removeEventListener(away.events.AssetEvent.STATE_TRANSITION_COMPLETE, this.onAssetComplete, this);
+                dispatcher.removeEventListener(away.events.AssetEvent.TEXTURE_COMPLETE, this.onAssetComplete, this);
+                dispatcher.removeEventListener(away.events.AssetEvent.CONTAINER_COMPLETE, this.onAssetComplete, this);
+                dispatcher.removeEventListener(away.events.AssetEvent.GEOMETRY_COMPLETE, this.onAssetComplete, this);
+                dispatcher.removeEventListener(away.events.AssetEvent.MATERIAL_COMPLETE, this.onAssetComplete, this);
+                dispatcher.removeEventListener(away.events.AssetEvent.MESH_COMPLETE, this.onAssetComplete, this);
+                dispatcher.removeEventListener(away.events.AssetEvent.ENTITY_COMPLETE, this.onAssetComplete, this);
+                dispatcher.removeEventListener(away.events.AssetEvent.SKELETON_COMPLETE, this.onAssetComplete, this);
+                dispatcher.removeEventListener(away.events.AssetEvent.SKELETON_POSE_COMPLETE, this.onAssetComplete, this);
+            };
+
+            Loader3D.prototype.onAssetComplete = function (ev) {
+                if (ev.type == away.events.AssetEvent.ASSET_COMPLETE) {
+                    // TODO: not used
+                    // var type : string = ev.asset.assetType;
+                    var obj;
+                    switch (ev.asset.assetType) {
+                        case away.library.AssetType.LIGHT:
+                            obj = ev.asset;
+                            break;
+                        case away.library.AssetType.CONTAINER:
+                            obj = ev.asset;
+                            break;
+                        case away.library.AssetType.MESH:
+                            obj = ev.asset;
+                            break;
+
+                            break;
+
+                            break;
+                        case away.library.AssetType.CAMERA:
+                            obj = ev.asset;
+                            break;
+                        case away.library.AssetType.SEGMENT_SET:
+                            obj = ev.asset;
+                            break;
+                    }
+
+                    if (obj && obj.parent == null)
+                        this.addChild(obj);
+                }
+
+                this.dispatchEvent(ev.clone());
+            };
+
+            /**
+            * Called when a an error occurs during dependency retrieving.
+            */
+            Loader3D.prototype.onDependencyRetrievingError = function (event) {
+                if (this.hasEventListener(away.events.LoaderEvent.LOAD_ERROR, this.onDependencyRetrievingError, this)) {
+                    this.dispatchEvent(event);
+                    return true;
+                } else {
+                    return false;
+                }
+            };
+
+            /**
+            * Called when a an error occurs during parsing.
+            */
+            Loader3D.prototype.onDependencyRetrievingParseError = function (event) {
+                if (this.hasEventListener(away.events.ParserEvent.PARSE_ERROR, this.onDependencyRetrievingParseError, this)) {
+                    this.dispatchEvent(event);
+                    return true;
+                } else {
+                    return false;
+                }
+            };
+
+            /**
+            * Called when the resource and all of its dependencies was retrieved.
+            */
+            Loader3D.prototype.onResourceRetrieved = function (event) {
+                var loader = event.target;
+
+                this.dispatchEvent(event.clone());
+            };
+            return Loader3D;
+        })(away.containers.ObjectContainer3D);
+        loaders.Loader3D = Loader3D;
+    })(away.loaders || (away.loaders = {}));
+    var loaders = away.loaders;
+})(away || (away = {}));
 var away;
 (function (away) {
     ///<reference path="../../_definitions.ts"/>
@@ -18046,6 +18615,7 @@ var away;
                 if (typeof materialMode === "undefined") { materialMode = 0; }
                 _super.call(this);
                 this._materialMode = materialMode;
+                this._assets = new Array();
             }
             SingleFileLoader.enableParser = function (parser) {
                 if (SingleFileLoader._parsers.indexOf(parser) < 0) {
@@ -18281,7 +18851,7 @@ var away;
                 this.removeListeners(urlLoader);
 
                 //if(this.hasEventListener(away.events.LoaderEvent.LOAD_ERROR , this.handleUrlLoaderError , this ))
-                this.dispatchEvent(new away.events.LoaderEvent(away.events.LoaderEvent.LOAD_ERROR, this._req.url, true));
+                this.dispatchEvent(new away.events.LoaderEvent(away.events.LoaderEvent.LOAD_ERROR, this.url, this._assets));
             };
 
             /**
@@ -18295,7 +18865,7 @@ var away;
 
                 if (this._loadAsRawData) {
                     // No need to parse this data, which should be returned as is
-                    this.dispatchEvent(new away.events.LoaderEvent(away.events.LoaderEvent.DEPENDENCY_COMPLETE));
+                    this.dispatchEvent(new away.events.LoaderEvent(away.events.LoaderEvent.DEPENDENCY_COMPLETE, this.url, this._assets));
                 } else {
                     this.parse(this._data);
                 }
@@ -18339,7 +18909,7 @@ var away;
                     var msg = "No parser defined. To enable all parsers for auto-detection, use Parsers.enableAllBundled()";
 
                     //if(hasEventListener(LoaderEvent.LOAD_ERROR)){
-                    this.dispatchEvent(new away.events.LoaderEvent(away.events.LoaderEvent.LOAD_ERROR, "", true, msg));
+                    this.dispatchEvent(new away.events.LoaderEvent(away.events.LoaderEvent.LOAD_ERROR, this.url, this._assets, true, msg));
                     //} else{
                     //	throw new Error(msg);
                     //}
@@ -18355,6 +18925,9 @@ var away;
             };
 
             SingleFileLoader.prototype.onAssetComplete = function (event) {
+                if (event.type == away.events.AssetEvent.ASSET_COMPLETE)
+                    this._assets.push(event.asset);
+
                 this.dispatchEvent(event.clone());
             };
 
@@ -18366,7 +18939,7 @@ var away;
             * Called when parsing is complete.
             */
             SingleFileLoader.prototype.onParseComplete = function (event) {
-                this.dispatchEvent(new away.events.LoaderEvent(away.events.LoaderEvent.DEPENDENCY_COMPLETE, this.url));
+                this.dispatchEvent(new away.events.LoaderEvent(away.events.LoaderEvent.DEPENDENCY_COMPLETE, this.url, this._assets));
 
                 this._parser.removeEventListener(away.events.ParserEvent.READY_FOR_DEPENDENCIES, this.onReadyForDependencies, this);
                 this._parser.removeEventListener(away.events.ParserEvent.PARSE_COMPLETE, this.onParseComplete, this);
@@ -20726,7 +21299,7 @@ var away;
                 var shadowMapperType = props.get(9, 0);
                 var parentName = "Root (TopLevel)";
                 var lightTypes = ["Unsupported LightType", "PointLight", "DirectionalLight"];
-                var shadowMapperTypes = ["No ShadowMapper", "DirectionalShadowMapper", "NearDirectionalShadowMapper", "CascadeShadowMapper", "CubeMapShadowMapper"];
+                var shadowMapperTypes = ["No ShadowMapper", "s", "NearDirectionalShadowMapper", "CascadeShadowMapper", "CubeMapShadowMapper"];
 
                 if (lightType == 1) {
                     light = new away.lights.PointLight();
@@ -20749,6 +21322,7 @@ var away;
                     if (shadowMapperType > 0) {
                         if (shadowMapperType == 1) {
                             newShadowMapper = new away.lights.DirectionalShadowMapper();
+                            console.log('newShadowMapper', newShadowMapper);
                         }
                         //if (shadowMapperType == 2)
                         //  newShadowMapper = new NearDirectionalShadowMapper(props.get(11, 0.5));
@@ -20766,12 +21340,16 @@ var away;
                     if (newShadowMapper instanceof away.lights.CubeMapShadowMapper) {
                         if (props.get(10, 1) != 1) {
                             newShadowMapper.depthMapSize = this._depthSizeDic[props.get(10, 1)];
+                            console.log('newShadowMapper.depthMapSize', newShadowMapper.depthMapSize);
                         }
                     } else {
                         if (props.get(10, 2) != 2) {
                             newShadowMapper.depthMapSize = this._depthSizeDic[props.get(10, 2)];
+                            console.log('newShadowMapper.depthMapSize1', newShadowMapper.depthMapSize);
                         }
                     }
+
+                    console.log('newShadowMapper.depthMapSize2', newShadowMapper.depthMapSize);
 
                     light.shadowMapper = newShadowMapper;
                     light.castsShadows = true;
@@ -21411,7 +21989,41 @@ else
 
                 var targetID;
                 var returnedArray;
+
+                console.log('shadowMethod', methodType);
+
                 switch (methodType) {
+                    case 1101:
+                        shadowMethod = new away.materials.FilteredShadowMapMethod(light);
+                        (shadowMethod).alpha = props.get(101, 1);
+                        (shadowMethod).epsilon = props.get(102, 0.002);
+                        break;
+
+                    case 1102:
+                        shadowMethod = new away.materials.DitheredShadowMapMethod(light, props.get(201, 5));
+                        (shadowMethod).alpha = props.get(101, 1);
+                        (shadowMethod).epsilon = props.get(102, 0.002);
+                        (shadowMethod).range = props.get(103, 1);
+
+                        break;
+                    case 1103:
+                        var numSamples = props.get(201, 5);
+
+                        var alpha = props.get(101, 1);
+                        var epsilion = props.get(102, 0.002);
+                        var range = props.get(103, 1);
+
+                        console.log('numSamples', numSamples);
+                        console.log('alpha', alpha);
+                        console.log('epsilion', epsilion);
+                        console.log('range', range);
+
+                        shadowMethod = new away.materials.SoftShadowMapMethod(light, numSamples);
+                        (shadowMethod).alpha = alpha;
+                        (shadowMethod).epsilon = epsilion;
+                        (shadowMethod).range = range;
+
+                        break;
                 }
                 this.parseUserAttributes();
                 return shadowMethod;
@@ -21938,6 +22550,1209 @@ var AWDProperties = (function () {
 })();
 var away;
 (function (away) {
+    ///<reference path="../../_definitions.ts"/>
+    (function (loaders) {
+        /**
+        * Max3DSParser provides a parser for the 3ds data type.
+        */
+        var Max3DSParser = (function (_super) {
+            __extends(Max3DSParser, _super);
+            function Max3DSParser() {
+                _super.call(this, loaders.ParserDataFormat.BINARY);
+            }
+            Max3DSParser.supportsType = /**
+            * Indicates whether or not a given file extension is supported by the parser.
+            * @param extension The file extension of a potential file to be parsed.
+            * @return Whether or not the given file type is supported.
+            */
+            function (extension) {
+                extension = extension.toLowerCase();
+                return extension == "3ds";
+            };
+
+            Max3DSParser.supportsData = /**
+            * Tests whether a data block can be parsed by the parser.
+            * @param data The data block to potentially be parsed.
+            * @return Whether or not the given data is supported.
+            */
+            function (data) {
+                var ba;
+
+                ba = away.loaders.ParserUtil.toByteArray(data);
+                if (ba) {
+                    ba.position = 0;
+                    if (ba.readShort() == 0x4d4d)
+                        return true;
+                }
+
+                return false;
+            };
+
+            /**
+            * @inheritDoc
+            */
+            Max3DSParser.prototype._iResolveDependency = function (resourceDependency) {
+                if (resourceDependency.assets.length == 1) {
+                    var asset;
+
+                    asset = resourceDependency.assets[0];
+                    if (asset.assetType == away.library.AssetType.TEXTURE) {
+                        var tex;
+
+                        tex = this._textures[resourceDependency.id];
+                        tex.texture = asset;
+                    }
+                }
+            };
+
+            /**
+            * @inheritDoc
+            */
+            Max3DSParser.prototype._iResolveDependencyFailure = function (resourceDependency) {
+                // TODO: Implement
+            };
+
+            /**
+            * @inheritDoc
+            */
+            Max3DSParser.prototype._pProceedParsing = function () {
+                if (!this._byteData) {
+                    this._byteData = this._pGetByteData();
+                    this._byteData.position = 0;
+
+                    //----------------------------------------------------------------------------
+                    // LITTLE_ENDIAN - Default for ArrayBuffer / Not implemented in ByteArray
+                    //----------------------------------------------------------------------------
+                    //this._byteData.endian = Endian.LITTLE_ENDIAN;// Should be default
+                    //----------------------------------------------------------------------------
+                    this._textures = {};
+                    this._materials = {};
+                    this._unfinalized_objects = {};
+                }
+
+                while (this._pHasTime()) {
+                    if (this._cur_mat && this._byteData.position >= this._cur_mat_end)
+                        this.finalizeCurrentMaterial();
+else if (this._cur_obj && this._byteData.position >= this._cur_obj_end) {
+                        // Can't finalize at this point, because we have to wait until the full
+                        // animation section has been parsed for any potential pivot definitions
+                        this._unfinalized_objects[this._cur_obj.name] = this._cur_obj;
+                        this._cur_obj_end = Number.MAX_VALUE;
+                        ;
+                        this._cur_obj = null;
+                    }
+
+                    if (this._byteData.getBytesAvailable() > 0) {
+                        var cid/*uint*/ ;
+                        var len/*uint*/ ;
+                        var end/*uint*/ ;
+
+                        cid = this._byteData.readUnsignedShort();
+                        len = this._byteData.readUnsignedInt();
+                        end = this._byteData.position + (len - 6);
+
+                        switch (cid) {
+                            case 0x4D4D:
+                            case 0x3D3D:
+                            case 0xB000:
+                                continue;
+                                break;
+
+                            case 0xAFFF:
+                                this._cur_mat_end = end;
+                                this._cur_mat = this.parseMaterial();
+                                break;
+
+                            case 0x4000:
+                                this._cur_obj_end = end;
+                                this._cur_obj = new ObjectVO();
+                                this._cur_obj.name = this.readNulTermstring();
+                                this._cur_obj.materials = new Array();
+                                this._cur_obj.materialFaces = {};
+                                break;
+
+                            case 0x4100:
+                                this._cur_obj.type = away.library.AssetType.MESH;
+                                break;
+
+                            case 0x4110:
+                                this.parseVertexList();
+                                break;
+
+                            case 0x4120:
+                                this.parseFaceList();
+                                break;
+
+                            case 0x4140:
+                                this.parseUVList();
+                                break;
+
+                            case 0x4130:
+                                this.parseFaceMaterialList();
+                                break;
+
+                            case 0x4160:
+                                this._cur_obj.transform = this.readTransform();
+                                break;
+
+                            case 0xB002:
+                                this.parseObjectAnimation(end);
+                                break;
+
+                            case 0x4150:
+                                this.parseSmoothingGroups();
+                                break;
+
+                            default:
+                                // Skip this (unknown) chunk
+                                this._byteData.position += (len - 6);
+                                break;
+                        }
+
+                        if (this.dependencies.length) {
+                            this._pPauseAndRetrieveDependencies();
+                            break;
+                        }
+                    }
+                }
+
+                if (this._byteData.getBytesAvailable() || this._cur_obj || this._cur_mat)
+                    return away.loaders.ParserBase.MORE_TO_PARSE;
+else {
+                    var name;
+
+                    for (name in this._unfinalized_objects) {
+                        var obj;
+                        obj = this.constructObject(this._unfinalized_objects[name]);
+                        if (obj)
+                            this._pFinalizeAsset(obj, name);
+                    }
+
+                    return away.loaders.ParserBase.PARSING_DONE;
+                }
+            };
+
+            Max3DSParser.prototype.parseMaterial = function () {
+                var mat;
+
+                mat = new MaterialVO();
+
+                while (this._byteData.position < this._cur_mat_end) {
+                    var cid/*uint*/ ;
+                    var len/*uint*/ ;
+                    var end/*uint*/ ;
+
+                    cid = this._byteData.readUnsignedShort();
+                    len = this._byteData.readUnsignedInt();
+                    end = this._byteData.position + (len - 6);
+
+                    switch (cid) {
+                        case 0xA000:
+                            mat.name = this.readNulTermstring();
+                            break;
+
+                        case 0xA010:
+                            mat.ambientColor = this.readColor();
+                            break;
+
+                        case 0xA020:
+                            mat.diffuseColor = this.readColor();
+                            break;
+
+                        case 0xA030:
+                            mat.specularColor = this.readColor();
+                            break;
+
+                        case 0xA081:
+                            mat.twoSided = true;
+                            break;
+
+                        case 0xA200:
+                            mat.colorMap = this.parseTexture(end);
+                            break;
+
+                        case 0xA204:
+                            mat.specularMap = this.parseTexture(end);
+                            break;
+
+                        default:
+                            this._byteData.position = end;
+                            break;
+                    }
+                }
+
+                return mat;
+            };
+
+            Max3DSParser.prototype.parseTexture = function (end/*uint*/ ) {
+                var tex;
+
+                tex = new TextureVO();
+
+                while (this._byteData.position < end) {
+                    var cid/*uint*/ ;
+                    var len/*uint*/ ;
+
+                    cid = this._byteData.readUnsignedShort();
+                    len = this._byteData.readUnsignedInt();
+
+                    switch (cid) {
+                        case 0xA300:
+                            tex.url = this.readNulTermstring();
+                            break;
+
+                        default:
+                            // Skip this unknown texture sub-chunk
+                            this._byteData.position += (len - 6);
+                            break;
+                    }
+                }
+
+                this._textures[tex.url] = tex;
+                this._pAddDependency(tex.url, new away.net.URLRequest(tex.url));
+
+                return tex;
+            };
+
+            Max3DSParser.prototype.parseVertexList = function () {
+                var i/*uint*/ ;
+                var len/*uint*/ ;
+                var count/*uint*/ ;
+
+                count = this._byteData.readUnsignedShort();
+                this._cur_obj.verts = new Array(count * 3);
+
+                i = 0;
+                len = this._cur_obj.verts.length;
+                while (i < len) {
+                    var x, y, z;
+
+                    x = this._byteData.readFloat();
+                    y = this._byteData.readFloat();
+                    z = this._byteData.readFloat();
+
+                    this._cur_obj.verts[i++] = x;
+                    this._cur_obj.verts[i++] = z;
+                    this._cur_obj.verts[i++] = y;
+                }
+            };
+
+            Max3DSParser.prototype.parseFaceList = function () {
+                var i/*uint*/ ;
+                var len/*uint*/ ;
+                var count/*uint*/ ;
+
+                count = this._byteData.readUnsignedShort();
+                this._cur_obj.indices = new Array(count * 3);
+
+                i = 0;
+                len = this._cur_obj.indices.length;
+                while (i < len) {
+                    var i0/*uint*/ , i1, i2;
+
+                    i0 = this._byteData.readUnsignedShort();
+                    i1 = this._byteData.readUnsignedShort();
+                    i2 = this._byteData.readUnsignedShort();
+
+                    this._cur_obj.indices[i++] = i0;
+                    this._cur_obj.indices[i++] = i2;
+                    this._cur_obj.indices[i++] = i1;
+
+                    // Skip "face info", irrelevant in Away3D
+                    this._byteData.position += 2;
+                }
+
+                this._cur_obj.smoothingGroups = new Array(count);
+            };
+
+            Max3DSParser.prototype.parseSmoothingGroups = function () {
+                var len = this._cur_obj.indices.length / 3;
+                var i = 0;
+                while (i < len) {
+                    this._cur_obj.smoothingGroups[i] = this._byteData.readUnsignedInt();
+                    i++;
+                }
+            };
+
+            Max3DSParser.prototype.parseUVList = function () {
+                var i/*uint*/ ;
+                var len/*uint*/ ;
+                var count/*uint*/ ;
+
+                count = this._byteData.readUnsignedShort();
+                this._cur_obj.uvs = new Array(count * 2);
+
+                i = 0;
+                len = this._cur_obj.uvs.length;
+                while (i < len) {
+                    this._cur_obj.uvs[i++] = this._byteData.readFloat();
+                    this._cur_obj.uvs[i++] = 1.0 - this._byteData.readFloat();
+                }
+            };
+
+            Max3DSParser.prototype.parseFaceMaterialList = function () {
+                var mat;
+                var count/*uint*/ ;
+                var i/*uint*/ ;
+                var faces/*uint*/ ;
+
+                mat = this.readNulTermstring();
+                count = this._byteData.readUnsignedShort();
+
+                faces = new Array(count);
+                i = 0;
+                while (i < faces.length)
+                    faces[i++] = this._byteData.readUnsignedShort();
+
+                this._cur_obj.materials.push(mat);
+                this._cur_obj.materialFaces[mat] = faces;
+            };
+
+            Max3DSParser.prototype.parseObjectAnimation = function (end) {
+                var vo;
+                var obj;
+                var pivot;
+                var name;
+                var hier/*uint*/ ;
+
+                // Pivot defaults to origin
+                pivot = new away.geom.Vector3D();
+
+                while (this._byteData.position < end) {
+                    var cid/*uint*/ ;
+                    var len/*uint*/ ;
+
+                    cid = this._byteData.readUnsignedShort();
+                    len = this._byteData.readUnsignedInt();
+
+                    switch (cid) {
+                        case 0xb010:
+                            name = this.readNulTermstring();
+                            this._byteData.position += 4;
+                            hier = this._byteData.readShort();
+                            break;
+
+                        case 0xb013:
+                            pivot.x = this._byteData.readFloat();
+                            pivot.z = this._byteData.readFloat();
+                            pivot.y = this._byteData.readFloat();
+                            break;
+
+                        default:
+                            this._byteData.position += (len - 6);
+                            break;
+                    }
+                }
+
+                if (name != '$$$DUMMY' && this._unfinalized_objects.hasOwnProperty(name)) {
+                    vo = this._unfinalized_objects[name];
+                    obj = this.constructObject(vo, pivot);
+
+                    if (obj)
+                        this._pFinalizeAsset(obj, vo.name);
+
+                    delete this._unfinalized_objects[name];
+                }
+            };
+
+            Max3DSParser.prototype.constructObject = function (obj, pivot) {
+                if (typeof pivot === "undefined") { pivot = null; }
+                if (obj.type == away.library.AssetType.MESH) {
+                    var i/*uint*/ ;
+                    var subs;
+                    var geom;
+                    var mat;
+                    var mesh;
+                    var mtx;
+                    var vertices;
+                    var faces;
+
+                    if (obj.materials.length > 1)
+                        console.log("The Away3D 3DS parser does not support multiple materials per mesh at this point.");
+
+                    if (!obj.indices || obj.indices.length == 0)
+                        return null;
+
+                    vertices = new Array(obj.verts.length / 3);
+                    faces = new Array(obj.indices.length / 3);
+
+                    this.prepareData(vertices, faces, obj);
+                    this.applySmoothGroups(vertices, faces);
+
+                    obj.verts = new Array(vertices.length * 3);
+                    for (i = 0; i < vertices.length; i++) {
+                        obj.verts[i * 3] = vertices[i].x;
+                        obj.verts[i * 3 + 1] = vertices[i].y;
+                        obj.verts[i * 3 + 2] = vertices[i].z;
+                    }
+                    obj.indices = new Array(faces.length * 3);
+                    ;
+                    for (i = 0; i < faces.length; i++) {
+                        obj.indices[i * 3] = faces[i].a;
+                        obj.indices[i * 3 + 1] = faces[i].b;
+                        obj.indices[i * 3 + 2] = faces[i].c;
+                    }
+
+                    if (obj.uvs) {
+                        // If the object had UVs to start with, use UVs generated by
+                        // smoothing group splitting algorithm. Otherwise those UVs
+                        // will be nonsense and should be skipped.
+                        obj.uvs = new Array(vertices.length * 2);
+                        for (i = 0; i < vertices.length; i++) {
+                            obj.uvs[i * 2] = vertices[i].u;
+                            obj.uvs[i * 2 + 1] = vertices[i].v;
+                        }
+                    }
+
+                    geom = new away.base.Geometry();
+
+                    // Construct sub-geometries (potentially splitting buffers)
+                    // and add them to geometry.
+                    subs = away.utils.GeometryUtils.fromVectors(obj.verts, obj.indices, obj.uvs, null, null, null, null);
+                    for (i = 0; i < subs.length; i++)
+                        geom.subGeometries.push(subs[i]);
+
+                    if (obj.materials.length > 0) {
+                        var mname;
+                        mname = obj.materials[0];
+                        mat = this._materials[mname].material;
+                    }
+
+                    if (pivot) {
+                        if (obj.transform) {
+                            // If a transform was found while parsing the
+                            // object chunk, use it to find the local pivot vector
+                            var dat = obj.transform.concat();
+                            dat[12] = 0;
+                            dat[13] = 0;
+                            dat[14] = 0;
+                            mtx = new away.geom.Matrix3D(dat);
+                            pivot = mtx.transformVector(pivot);
+                        }
+
+                        pivot.scaleBy(-1);
+
+                        mtx = new away.geom.Matrix3D();
+                        mtx.appendTranslation(pivot.x, pivot.y, pivot.z);
+                        geom.applyTransformation(mtx);
+                    }
+
+                    if (obj.transform) {
+                        mtx = new away.geom.Matrix3D(obj.transform);
+                        mtx.invert();
+                        geom.applyTransformation(mtx);
+                    }
+
+                    // Final transform applied to geometry. Finalize the geometry,
+                    // which will no longer be modified after this point.
+                    this._pFinalizeAsset(geom, obj.name.concat('_geom'));
+
+                    // Build mesh and return it
+                    mesh = new away.entities.Mesh(geom, mat);
+                    mesh.transform = new away.geom.Matrix3D(obj.transform);
+                    return mesh;
+                }
+
+                // If reached, unknown
+                return null;
+            };
+
+            Max3DSParser.prototype.prepareData = function (vertices, faces, obj) {
+                // convert raw ObjectVO's data to structured VertexVO and FaceVO
+                var i/*int*/ ;
+                var j/*int*/ ;
+                var k/*int*/ ;
+                var len = obj.verts.length;
+                for (i = 0, j = 0, k = 0; i < len;) {
+                    var v = new VertexVO();
+                    v.x = obj.verts[i++];
+                    v.y = obj.verts[i++];
+                    v.z = obj.verts[i++];
+                    if (obj.uvs) {
+                        v.u = obj.uvs[j++];
+                        v.v = obj.uvs[j++];
+                    }
+                    vertices[k++] = v;
+                }
+                len = obj.indices.length;
+                for (i = 0, k = 0; i < len;) {
+                    var f = new FaceVO();
+                    f.a = obj.indices[i++];
+                    f.b = obj.indices[i++];
+                    f.c = obj.indices[i++];
+                    f.smoothGroup = obj.smoothingGroups[k];
+                    faces[k++] = f;
+                }
+            };
+
+            Max3DSParser.prototype.applySmoothGroups = function (vertices, faces) {
+                // clone vertices according to following rule:
+                // clone if vertex's in faces from groups 1+2 and 3
+                // don't clone if vertex's in faces from groups 1+2, 3 and 1+3
+                var i/*int*/ ;
+                var j/*int*/ ;
+                var k/*int*/ ;
+                var l/*int*/ ;
+                var len/*int*/ ;
+                var numVerts = vertices.length;
+                var numFaces = faces.length;
+
+                // extract groups data for vertices
+                var vGroups = new Array(numVerts)/*uint*/ ;
+                for (i = 0; i < numVerts; i++)
+                    vGroups[i] = new Array();
+                for (i = 0; i < numFaces; i++) {
+                    var face = faces[i];
+                    for (j = 0; j < 3; j++) {
+                        var groups = vGroups[(j == 0) ? face.a : ((j == 1) ? face.b : face.c)];
+                        var group = face.smoothGroup;
+                        for (k = groups.length - 1; k >= 0; k--) {
+                            if ((group & groups[k]) > 0) {
+                                group |= groups[k];
+                                groups.splice(k, 1);
+                                k = groups.length - 1;
+                            }
+                        }
+                        groups.push(group);
+                    }
+                }
+
+                // clone vertices
+                var vClones = new Array(numVerts)/*uint*/ ;
+                for (i = 0; i < numVerts; i++) {
+                    if ((len = vGroups[i].length) < 1)
+                        continue;
+                    var clones = new Array(len)/*uint*/ ;
+                    vClones[i] = clones;
+                    clones[0] = i;
+                    var v0 = vertices[i];
+                    for (j = 1; j < len; j++) {
+                        var v1 = new VertexVO();
+                        v1.x = v0.x;
+                        v1.y = v0.y;
+                        v1.z = v0.z;
+                        v1.u = v0.u;
+                        v1.v = v0.v;
+                        clones[j] = vertices.length;
+                        vertices.push(v1);
+                    }
+                }
+                numVerts = vertices.length;
+
+                for (i = 0; i < numFaces; i++) {
+                    face = faces[i];
+                    group = face.smoothGroup;
+                    for (j = 0; j < 3; j++) {
+                        k = (j == 0) ? face.a : ((j == 1) ? face.b : face.c);
+                        groups = vGroups[k];
+                        len = groups.length;
+                        clones = vClones[k];
+                        for (l = 0; l < len; l++) {
+                            if (((group == 0) && (groups[l] == 0)) || ((group & groups[l]) > 0)) {
+                                var index = clones[l];
+                                if (group == 0) {
+                                    // vertex is unique if no smoothGroup found
+                                    groups.splice(l, 1);
+                                    clones.splice(l, 1);
+                                }
+                                if (j == 0)
+                                    face.a = index;
+else if (j == 1)
+                                    face.b = index;
+else
+                                    face.c = index;
+                                l = len;
+                            }
+                        }
+                    }
+                }
+            };
+
+            Max3DSParser.prototype.finalizeCurrentMaterial = function () {
+                var mat;
+                if (this.materialMode < 2) {
+                    if (this._cur_mat.colorMap)
+                        mat = new away.materials.TextureMaterial(this._cur_mat.colorMap.texture || away.materials.DefaultMaterialManager.getDefaultTexture());
+else
+                        mat = new away.materials.ColorMaterial(this._cur_mat.diffuseColor);
+                    (mat).ambientColor = this._cur_mat.ambientColor;
+                    (mat).specularColor = this._cur_mat.specularColor;
+                } else {
+                    if (this._cur_mat.colorMap)
+                        mat = new away.materials.TextureMultiPassMaterial(this._cur_mat.colorMap.texture || away.materials.DefaultMaterialManager.getDefaultTexture());
+else
+                        mat = new away.materials.ColorMultiPassMaterial(this._cur_mat.diffuseColor);
+                    (mat).ambientColor = this._cur_mat.ambientColor;
+                    (mat).specularColor = this._cur_mat.specularColor;
+                }
+
+                mat.bothSides = this._cur_mat.twoSided;
+
+                this._pFinalizeAsset(mat, this._cur_mat.name);
+
+                this._materials[this._cur_mat.name] = this._cur_mat;
+                this._cur_mat.material = mat;
+
+                this._cur_mat = null;
+            };
+
+            Max3DSParser.prototype.readNulTermstring = function () {
+                var chr/*int*/ ;
+                var str = "";
+
+                while ((chr = this._byteData.readUnsignedByte()) > 0)
+                    str += String.fromCharCode(chr);
+
+                return str;
+            };
+
+            Max3DSParser.prototype.readTransform = function () {
+                var data;
+
+                data = new Array(16);
+
+                // X axis
+                data[0] = this._byteData.readFloat();
+                data[2] = this._byteData.readFloat();
+                data[1] = this._byteData.readFloat();
+                data[3] = 0;
+
+                // Z axis
+                data[8] = this._byteData.readFloat();
+                data[10] = this._byteData.readFloat();
+                data[9] = this._byteData.readFloat();
+                data[11] = 0;
+
+                // Y Axis
+                data[4] = this._byteData.readFloat();
+                data[6] = this._byteData.readFloat();
+                data[5] = this._byteData.readFloat();
+                data[7] = 0;
+
+                // Translation
+                data[12] = this._byteData.readFloat();
+                data[14] = this._byteData.readFloat();
+                data[13] = this._byteData.readFloat();
+                data[15] = 1;
+
+                return data;
+            };
+
+            Max3DSParser.prototype.readColor = function () {
+                var cid/*int*/ ;
+                var len/*int*/ ;
+                var r/*int*/ , g, b;
+
+                cid = this._byteData.readUnsignedShort();
+                len = this._byteData.readUnsignedInt();
+
+                switch (cid) {
+                    case 0x0010:
+                        r = this._byteData.readFloat() * 255;
+                        g = this._byteData.readFloat() * 255;
+                        b = this._byteData.readFloat() * 255;
+                        break;
+                    case 0x0011:
+                        r = this._byteData.readUnsignedByte();
+                        g = this._byteData.readUnsignedByte();
+                        b = this._byteData.readUnsignedByte();
+                        break;
+                    default:
+                        this._byteData.position += (len - 6);
+                        break;
+                }
+
+                return (r << 16) | (g << 8) | b;
+            };
+            return Max3DSParser;
+        })(away.loaders.ParserBase);
+        loaders.Max3DSParser = Max3DSParser;
+    })(away.loaders || (away.loaders = {}));
+    var loaders = away.loaders;
+})(away || (away = {}));
+
+var TextureVO = (function () {
+    function TextureVO() {
+    }
+    TextureVO.prototype.TextureVO = function () {
+    };
+    return TextureVO;
+})();
+
+var MaterialVO = (function () {
+    function MaterialVO() {
+    }
+    MaterialVO.prototype.MaterialVO = function () {
+    };
+    return MaterialVO;
+})();
+
+var ObjectVO = (function () {
+    function ObjectVO() {
+    }
+    ObjectVO.prototype.ObjectVO = function () {
+    };
+    return ObjectVO;
+})();
+
+var VertexVO = (function () {
+    function VertexVO() {
+    }
+    VertexVO.prototype.VertexVO = function () {
+    };
+    return VertexVO;
+})();
+
+var FaceVO = (function () {
+    function FaceVO() {
+    }
+    FaceVO.prototype.FaceVO = function () {
+    };
+    return FaceVO;
+})();
+var away;
+(function (away) {
+    ///<reference path="../../_definitions.ts"/>
+    (function (loaders) {
+        /**
+        * MD2Parser provides a parser for the MD2 data type.
+        */
+        var MD2Parser = (function (_super) {
+            __extends(MD2Parser, _super);
+            /**
+            * Creates a new MD2Parser object.
+            * @param textureType The extension of the texture (e.g. jpg/png/...)
+            * @param ignoreTexturePath If true, the path of the texture is ignored
+            */
+            function MD2Parser(textureType, ignoreTexturePath) {
+                if (typeof textureType === "undefined") { textureType = "jpg"; }
+                if (typeof ignoreTexturePath === "undefined") { ignoreTexturePath = true; }
+                _super.call(this, loaders.ParserDataFormat.BINARY);
+                this._clipNodes = new Object();
+                // the current subgeom being built
+                this._animationSet = new away.animators.VertexAnimationSet();
+                this.materialFinal = false;
+                this.geoCreated = false;
+                this._textureType = textureType;
+                this._ignoreTexturePath = ignoreTexturePath;
+            }
+            MD2Parser.supportsType = /**
+            * Indicates whether or not a given file extension is supported by the parser.
+            * @param extension The file extension of a potential file to be parsed.
+            * @return Whether or not the given file type is supported.
+            */
+            function (extension) {
+                extension = extension.toLowerCase();
+                return extension == "md2";
+            };
+
+            MD2Parser.supportsData = /**
+            * Tests whether a data block can be parsed by the parser.
+            * @param data The data block to potentially be parsed.
+            * @return Whether or not the given data is supported.
+            */
+            function (data) {
+                return (loaders.ParserUtil.toString(data, 4) == 'IDP2');
+            };
+
+            /**
+            * @inheritDoc
+            */
+            MD2Parser.prototype._iResolveDependency = function (resourceDependency) {
+                if (resourceDependency.assets.length != 1)
+                    return;
+
+                var asset = resourceDependency.assets[0];
+                if (asset) {
+                    var material;
+                    if (this.materialMode < 2)
+                        material = new away.materials.TextureMaterial(asset);
+else
+                        material = new away.materials.TextureMultiPassMaterial(asset);
+
+                    material.name = this._mesh.material.name;
+                    this._mesh.material = material;
+                    this._pFinalizeAsset(material);
+                    this._pFinalizeAsset(this._mesh.geometry);
+                    this._pFinalizeAsset(this._mesh);
+                }
+                this.materialFinal = true;
+            };
+
+            /**
+            * @inheritDoc
+            */
+            MD2Parser.prototype._iResolveDependencyFailure = function (resourceDependency) {
+                if (this.materialMode < 2)
+                    this._mesh.material = away.materials.DefaultMaterialManager.getDefaultMaterial();
+else
+                    this._mesh.material = new away.materials.TextureMultiPassMaterial(away.materials.DefaultMaterialManager.getDefaultTexture());
+
+                this._pFinalizeAsset(this._mesh.geometry);
+                this._pFinalizeAsset(this._mesh);
+                this.materialFinal = true;
+            };
+
+            /**
+            * @inheritDoc
+            */
+            MD2Parser.prototype._pProceedParsing = function () {
+                if (!this._startedParsing) {
+                    this._byteData = this._pGetByteData();
+                    this._startedParsing = true;
+
+                    // Reset bytearray read position (which may have been
+                    // moved forward by the supportsData() function.)
+                    this._byteData.position = 0;
+                }
+
+                while (this._pHasTime()) {
+                    if (!this._parsedHeader) {
+                        //----------------------------------------------------------------------------
+                        // LITTLE_ENDIAN - Default for ArrayBuffer / Not implemented in ByteArray
+                        //----------------------------------------------------------------------------
+                        //this._byteData.endian = Endian.LITTLE_ENDIAN;
+                        // TODO: Create a mesh only when encountered (if it makes sense
+                        // for this file format) and return it using this._pFinalizeAsset()
+                        this._geometry = new away.base.Geometry();
+                        this._mesh = new away.entities.Mesh(this._geometry, null);
+                        if (this.materialMode < 2)
+                            this._mesh.material = away.materials.DefaultMaterialManager.getDefaultMaterial();
+else
+                            this._mesh.material = new away.materials.TextureMultiPassMaterial(away.materials.DefaultMaterialManager.getDefaultTexture());
+
+                        //_geometry.animation = new VertexAnimation(2, VertexAnimationMode.ABSOLUTE);
+                        //_animator = new VertexAnimator(VertexAnimationState(_mesh.animationState));
+                        // Parse header and decompress body
+                        this.parseHeader();
+                        this.parseMaterialNames();
+                    } else if (!this._parsedUV)
+                        this.parseUV();
+else if (!this._parsedFaces)
+                        this.parseFaces();
+else if (!this._parsedFrames)
+                        this.parseFrames();
+else if ((this.geoCreated) && (this.materialFinal))
+                        return away.loaders.ParserBase.PARSING_DONE;
+else if (!this.geoCreated) {
+                        this.geoCreated = true;
+                        this.createDefaultSubGeometry();
+
+                        // Force name to be chosen by this._pFinalizeAsset()
+                        this._mesh.name = "";
+                        if (this.materialFinal) {
+                            this._pFinalizeAsset(this._mesh.geometry);
+                            this._pFinalizeAsset(this._mesh);
+                        }
+
+                        this._pPauseAndRetrieveDependencies();
+                    }
+                }
+
+                return away.loaders.ParserBase.MORE_TO_PARSE;
+            };
+
+            /**
+            * Reads in all that MD2 Header data that is declared as private variables.
+            * I know its a lot, and it looks ugly, but only way to do it in Flash
+            */
+            MD2Parser.prototype.parseHeader = function () {
+                this._ident = this._byteData.readInt();
+                this._version = this._byteData.readInt();
+                this._skinWidth = this._byteData.readInt();
+                this._skinHeight = this._byteData.readInt();
+
+                //skip this._frameSize
+                this._byteData.readInt();
+                this._numSkins = this._byteData.readInt();
+                this._numVertices = this._byteData.readInt();
+                this._numST = this._byteData.readInt();
+                this._numTris = this._byteData.readInt();
+
+                //skip this._numGlCmds
+                this._byteData.readInt();
+                this._numFrames = this._byteData.readInt();
+                this._offsetSkins = this._byteData.readInt();
+                this._offsetST = this._byteData.readInt();
+                this._offsetTris = this._byteData.readInt();
+                this._offsetFrames = this._byteData.readInt();
+
+                //skip this._offsetGlCmds
+                this._byteData.readInt();
+                this._offsetEnd = this._byteData.readInt();
+
+                this._parsedHeader = true;
+            };
+
+            /**
+            * Parses the file names for the materials.
+            */
+            MD2Parser.prototype.parseMaterialNames = function () {
+                var url;
+                var name;
+                var extIndex/*int*/ ;
+                var slashIndex/*int*/ ;
+                this._materialNames = new Array();
+                this._byteData.position = this._offsetSkins;
+
+                var regExp = new RegExp("[^a-zA-Z0-9\\_\/.]", "g");
+                for (var i = 0; i < this._numSkins; ++i) {
+                    name = this._byteData.readUTFBytes(64);
+                    name = name.replace(regExp, "");
+                    extIndex = name.lastIndexOf(".");
+                    if (this._ignoreTexturePath)
+                        slashIndex = name.lastIndexOf("/");
+                    if (name.toLowerCase().indexOf(".jpg") == -1 && name.toLowerCase().indexOf(".png") == -1) {
+                        name = name.substring(slashIndex + 1, extIndex);
+                        url = name + "." + this._textureType;
+                    } else
+                        url = name;
+
+                    this._materialNames[i] = name;
+
+                    if (this.dependencies.length == 0)
+                        this._pAddDependency(name, new away.net.URLRequest(url));
+                }
+
+                if (this._materialNames.length > 0)
+                    this._mesh.material.name = this._materialNames[0];
+else
+                    this.materialFinal = true;
+            };
+
+            /**
+            * Parses the uv data for the mesh.
+            */
+            MD2Parser.prototype.parseUV = function () {
+                var j = 0;
+
+                this._uvs = new Array(this._numST * 2);
+                this._byteData.position = this._offsetST;
+                for (var i = 0; i < this._numST; i++) {
+                    this._uvs[j++] = this._byteData.readShort() / this._skinWidth;
+                    this._uvs[j++] = this._byteData.readShort() / this._skinHeight;
+                }
+
+                this._parsedUV = true;
+            };
+
+            /**
+            * Parses unique indices for the faces.
+            */
+            MD2Parser.prototype.parseFaces = function () {
+                var a/*uint*/ , b, c, ta, tb, tc;
+                var i/*uint*/ ;
+
+                this._vertIndices = new Array();
+                this._uvIndices = new Array();
+                this._indices = new Array();
+
+                this._byteData.position = this._offsetTris;
+
+                for (i = 0; i < this._numTris; i++) {
+                    //collect vertex indices
+                    a = this._byteData.readUnsignedShort();
+                    b = this._byteData.readUnsignedShort();
+                    c = this._byteData.readUnsignedShort();
+
+                    //collect uv indices
+                    ta = this._byteData.readUnsignedShort();
+                    tb = this._byteData.readUnsignedShort();
+                    tc = this._byteData.readUnsignedShort();
+
+                    this.addIndex(a, ta);
+                    this.addIndex(b, tb);
+                    this.addIndex(c, tc);
+                }
+
+                var len = this._uvIndices.length;
+                this._finalUV = new Array(len * 2);
+
+                for (i = 0; i < len; ++i) {
+                    this._finalUV[Math.floor(i << 1)] = this._uvs[Math.floor(this._uvIndices[i] << 1)];
+                    this._finalUV[Math.floor(((i << 1) + 1))] = this._uvs[Math.floor((this._uvIndices[i] << 1) + 1)];
+                }
+
+                this._parsedFaces = true;
+            };
+
+            /**
+            * Adds a face index to the list if it doesn't exist yet, based on vertexIndex and uvIndex, and adds the
+            * corresponding vertex and uv data in the correct location.
+            * @param vertexIndex The original index in the vertex list.
+            * @param uvIndex The original index in the uv list.
+            */
+            MD2Parser.prototype.addIndex = function (vertexIndex/*uint*/ , uvIndex/*uint*/ ) {
+                var index = this.findIndex(vertexIndex, uvIndex);
+
+                if (index == -1) {
+                    this._indices.push(this._vertIndices.length);
+                    this._vertIndices.push(vertexIndex);
+                    this._uvIndices.push(uvIndex);
+                } else
+                    this._indices.push(index);
+            };
+
+            /**
+            * Finds the final index corresponding to the original MD2's vertex and uv indices. Returns -1 if it wasn't added yet.
+            * @param vertexIndex The original index in the vertex list.
+            * @param uvIndex The original index in the uv list.
+            * @return The index of the final mesh corresponding to the original vertex and uv index. -1 if it doesn't exist yet.
+            */
+            MD2Parser.prototype.findIndex = function (vertexIndex/*uint*/ , uvIndex/*uint*/ ) {
+                var len = this._vertIndices.length;
+
+                for (var i = 0; i < len; ++i) {
+                    if (this._vertIndices[i] == vertexIndex && this._uvIndices[i] == uvIndex)
+                        return i;
+                }
+
+                return -1;
+            };
+
+            /**
+            * Parses all the frame geometries.
+            */
+            MD2Parser.prototype.parseFrames = function () {
+                var sx, sy, sz;
+                var tx, ty, tz;
+                var geometry;
+                var subGeom;
+                var vertLen = this._vertIndices.length;
+                var fvertices;
+                var tvertices;
+                var i/*uint*/ , j, k;
+
+                //var ch : number /*uint*/;
+                var name = "";
+                var prevClip = null;
+
+                this._byteData.position = this._offsetFrames;
+
+                for (i = 0; i < this._numFrames; i++) {
+                    subGeom = new away.base.CompactSubGeometry();
+
+                    if (this._firstSubGeom == null)
+                        this._firstSubGeom = subGeom;
+
+                    geometry = new away.base.Geometry();
+                    geometry.addSubGeometry(subGeom);
+                    tvertices = new Array();
+                    fvertices = new Array(vertLen * 3);
+
+                    sx = this._byteData.readFloat();
+                    sy = this._byteData.readFloat();
+                    sz = this._byteData.readFloat();
+
+                    tx = this._byteData.readFloat();
+                    ty = this._byteData.readFloat();
+                    tz = this._byteData.readFloat();
+
+                    name = this.readFrameName();
+
+                    for (j = 0; j < this._numVertices; j++, this._byteData.position++)
+                        tvertices.push(sx * this._byteData.readUnsignedByte() + tx, sy * this._byteData.readUnsignedByte() + ty, sz * this._byteData.readUnsignedByte() + tz);
+
+                    k = 0;
+                    for (j = 0; j < vertLen; j++) {
+                        fvertices[k++] = tvertices[Math.floor(this._vertIndices[j] * 3)];
+                        fvertices[k++] = tvertices[Math.floor(this._vertIndices[j] * 3 + 2)];
+                        fvertices[k++] = tvertices[Math.floor(this._vertIndices[j] * 3 + 1)];
+                    }
+
+                    subGeom.fromVectors(fvertices, this._finalUV, null, null);
+                    subGeom.updateIndexData(this._indices);
+                    subGeom.vertexNormalData;
+                    subGeom.vertexTangentData;
+                    subGeom.autoDeriveVertexNormals = false;
+                    subGeom.autoDeriveVertexTangents = false;
+
+                    var clip = this._clipNodes[name];
+
+                    if (!clip) {
+                        if (prevClip) {
+                            this._pFinalizeAsset(prevClip);
+                            this._animationSet.addAnimation(prevClip);
+                        }
+
+                        clip = new away.animators.VertexClipNode();
+                        clip.name = name;
+                        clip.stitchFinalFrame = true;
+
+                        this._clipNodes[name] = clip;
+
+                        prevClip = clip;
+                    }
+                    clip.addFrame(geometry, 1000 / away.loaders.MD2Parser.FPS);
+                }
+
+                if (prevClip) {
+                    this._pFinalizeAsset(prevClip);
+                    this._animationSet.addAnimation(prevClip);
+                }
+
+                // Force this._pFinalizeAsset() to decide name
+                this._pFinalizeAsset(this._animationSet);
+
+                this._parsedFrames = true;
+            };
+
+            MD2Parser.prototype.readFrameName = function () {
+                var name = "";
+                var k = 0;
+                for (var j = 0; j < 16; j++) {
+                    var ch = this._byteData.readUnsignedByte();
+
+                    if (Math.floor(ch) > 0x39 && Math.floor(ch) <= 0x7A && k == 0)
+                        name += String.fromCharCode(ch);
+
+                    if (Math.floor(ch) >= 0x30 && Math.floor(ch) <= 0x39)
+                        k++;
+                }
+                return name;
+            };
+
+            MD2Parser.prototype.createDefaultSubGeometry = function () {
+                var sub = new away.base.CompactSubGeometry();
+                sub.updateData(this._firstSubGeom.vertexData);
+                sub.updateIndexData(this._indices);
+                this._geometry.addSubGeometry(sub);
+            };
+            MD2Parser.FPS = 6;
+            return MD2Parser;
+        })(loaders.ParserBase);
+        loaders.MD2Parser = MD2Parser;
+    })(away.loaders || (away.loaders = {}));
+    var loaders = away.loaders;
+})(away || (away = {}));
+var away;
+(function (away) {
+    ///<reference path="../../_definitions.ts"/>
+    (function (loaders) {
+        var Parsers = (function () {
+            function Parsers() {
+            }
+            Parsers.enableAllBundled = /**
+            * Short-hand function to enable all bundled parsers for auto-detection. In practice,
+            * this is the same as invoking enableParsers(Parsers.ALL_BUNDLED) on any of the
+            * loader classes SingleFileLoader, AssetLoader, AssetLibrary or Loader3D.
+            *
+            * See notes about file size in the documentation for the ALL_BUNDLED constant.
+            *
+            * @see away3d.loaders.parsers.Parsers.ALL_BUNDLED
+            */
+            function () {
+                away.loaders.SingleFileLoader.enableParsers(this.ALL_BUNDLED);
+            };
+            Parsers.ALL_BUNDLED = Array(away.loaders.AWDParser, away.loaders.Max3DSParser, away.loaders.MD2Parser, away.loaders.OBJParser);
+            return Parsers;
+        })();
+        loaders.Parsers = Parsers;
+    })(away.loaders || (away.loaders = {}));
+    var loaders = away.loaders;
+})(away || (away = {}));
+var away;
+(function (away) {
     ///<reference path="../_definitions.ts"/>
     (function (textures) {
         var TextureProxyBase = (function (_super) {
@@ -22362,6 +24177,13 @@ var away;
                 this.pSetSize(width, height);
             }
             Object.defineProperty(RenderTexture.prototype, "width", {
+                get: /**
+                *
+                * @returns {number}
+                */
+                function () {
+                    return this._pWidth;
+                },
                 set: function (value) {
                     if (value == this._pWidth) {
                         return;
@@ -22377,7 +24199,15 @@ var away;
                 configurable: true
             });
 
+
             Object.defineProperty(RenderTexture.prototype, "height", {
+                get: /**
+                *
+                * @returns {number}
+                */
+                function () {
+                    return this._pHeight;
+                },
                 set: function (value) {
                     if (value == this._pHeight) {
                         return;
@@ -22394,10 +24224,14 @@ var away;
                 configurable: true
             });
 
+
             RenderTexture.prototype.pUploadContent = function (texture) {
                 // fake data, to complete texture for sampling
                 var bmp = new away.display.BitmapData(this.width, this.height, false, 0xff0000);
-                away.materials.MipmapGenerator.generateMipMaps(bmp, texture);
+
+                //(<away.display3D.Texture> texture).uploadFromBitmapData(bmp, 0);
+                //away.materials.MipmapGenerator.generateMipMaps(bmp, texture);
+                (texture).generateFromRenderBuffer(bmp);
                 bmp.dispose();
             };
 
@@ -23435,24 +25269,12 @@ var away;
                 this._renderSurfaceSelector = surfaceSelector;
                 this._enableDepthAndStencil = enableDepthAndStencil;
 
-                away.Debug.throwPIR('Stage3DProxy', 'setRenderTarget', 'away.display3D.Context3D: setRenderToTexture , setRenderToBackBuffer');
-                // todo : implement
-                /*
-                
-                if (target)
-                {
-                
-                this._iContext3D.setRenderToTexture(target, enableDepthAndStencil, this._antiAlias, surfaceSelector);
-                
+                if (target) {
+                    this._iContext3D.setRenderToTexture(target, enableDepthAndStencil, this._antiAlias, surfaceSelector);
+                } else {
+                    this._iContext3D.setRenderToBackBuffer();
+                    this.configureBackBuffer(this._backBufferWidth, this._backBufferHeight, this._antiAlias, this._enableDepthAndStencil);
                 }
-                else
-                {
-                
-                this._iContext3D.setRenderToBackBuffer();
-                
-                }
-                
-                */
             };
 
             /*
@@ -29708,7 +31530,7 @@ var away;
                 // the test for material is temporary, you SHOULD be hammered with errors if you try to render anything without a material
                 var material = renderable.material;
                 var entity = renderable.sourceEntity;
-                if (renderable.castsShadows && material) {
+                if (material) {
                     var item = this._pRenderableListItemPool.getItem();
                     item.renderable = renderable;
                     item.next = this._pOpaqueRenderableHead;
@@ -29741,6 +31563,19 @@ var away;
 
             //@override
             ShadowCasterCollector.prototype.applySkyBox = function (renderable) {
+            };
+
+            //@override
+            ShadowCasterCollector.prototype.enterNode = function (node) {
+                var enter = away.traverse.PartitionTraverser._iCollectionMark != node._iCollectionMark && node.isCastingShadow();
+
+                if (!enter) {
+                    node._iCollectionMark = away.traverse.PartitionTraverser._iCollectionMark;
+
+                    return false;
+                }
+
+                return _super.prototype.enterNode.call(this, node);
             };
             return ShadowCasterCollector;
         })(away.traverse.EntityCollector);
@@ -33046,6 +34881,27 @@ var away;
     ///<reference path="../../_definitions.ts"/>
     (function (animators) {
         /**
+        * Options for setting the animation mode of a vertex animator object.
+        *
+        * @see away.animators.VertexAnimator
+        */
+        var VertexAnimationMode = (function () {
+            function VertexAnimationMode() {
+            }
+            VertexAnimationMode.ADDITIVE = "additive";
+
+            VertexAnimationMode.ABSOLUTE = "absolute";
+            return VertexAnimationMode;
+        })();
+        animators.VertexAnimationMode = VertexAnimationMode;
+    })(away.animators || (away.animators = {}));
+    var animators = away.animators;
+})(away || (away = {}));
+var away;
+(function (away) {
+    ///<reference path="../../_definitions.ts"/>
+    (function (animators) {
+        /**
         * Provides an abstract base class for nodes in an animation blend tree.
         */
         var AnimationNodeBase = (function (_super) {
@@ -33055,10 +34911,12 @@ var away;
             */
             function AnimationNodeBase() {
                 _super.call(this);
+
+                this._iUniqueId = away.animators.AnimationNodeBase.ANIMATIONNODE_ID_COUNT++;
             }
             Object.defineProperty(AnimationNodeBase.prototype, "stateClass", {
                 get: function () {
-                    return this._stateClass;
+                    return this._pStateClass;
                 },
                 enumerable: true,
                 configurable: true
@@ -33083,6 +34941,542 @@ var away;
             return AnimationNodeBase;
         })(away.library.NamedAssetBase);
         animators.AnimationNodeBase = AnimationNodeBase;
+    })(away.animators || (away.animators = {}));
+    var animators = away.animators;
+})(away || (away = {}));
+var away;
+(function (away) {
+    ///<reference path="../../_definitions.ts"/>
+    (function (animators) {
+        /**
+        * Provides an abstract base class for nodes with time-based animation data in an animation blend tree.
+        */
+        var AnimationClipNodeBase = (function (_super) {
+            __extends(AnimationClipNodeBase, _super);
+            /**
+            * Creates a new <code>AnimationClipNodeBase</code> object.
+            */
+            function AnimationClipNodeBase() {
+                _super.call(this);
+                this._pLooping = true;
+                this._pTotalDuration = 0;
+                this._pStitchDirty = true;
+                this._pStitchFinalFrame = false;
+                this._pNumFrames = 0;
+                this._pDurations = new Array();
+                this._pTotalDelta = new away.geom.Vector3D();
+                this.fixedFrameRate = true;
+            }
+            Object.defineProperty(AnimationClipNodeBase.prototype, "looping", {
+                get: /**
+                * Determines whether the contents of the animation node have looping characteristics enabled.
+                */
+                function () {
+                    return this._pLooping;
+                },
+                set: function (value) {
+                    if (this._pLooping == value)
+                        return;
+
+                    this._pLooping = value;
+
+                    this._pStitchDirty = true;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+
+            Object.defineProperty(AnimationClipNodeBase.prototype, "stitchFinalFrame", {
+                get: /**
+                * Defines if looping content blends the final frame of animation data with the first (true) or works on the
+                * assumption that both first and last frames are identical (false). Defaults to false.
+                */
+                function () {
+                    return this._pStitchFinalFrame;
+                },
+                set: function (value) {
+                    if (this._pStitchFinalFrame == value)
+                        return;
+
+                    this._pStitchFinalFrame = value;
+
+                    this._pStitchDirty = true;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+
+            Object.defineProperty(AnimationClipNodeBase.prototype, "totalDuration", {
+                get: function () {
+                    if (this._pStitchDirty)
+                        this._pUpdateStitch();
+
+                    return this._pTotalDuration;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            Object.defineProperty(AnimationClipNodeBase.prototype, "totalDelta", {
+                get: function () {
+                    if (this._pStitchDirty)
+                        this._pUpdateStitch();
+
+                    return this._pTotalDelta;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            Object.defineProperty(AnimationClipNodeBase.prototype, "lastFrame", {
+                get: function () {
+                    if (this._pStitchDirty)
+                        this._pUpdateStitch();
+
+                    return this._pLastFrame;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            Object.defineProperty(AnimationClipNodeBase.prototype, "durations", {
+                get: /**
+                * Returns a vector of time values representing the duration (in milliseconds) of each animation frame in the clip.
+                */
+                function () {
+                    return this._pDurations;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            /**
+            * Updates the node's final frame stitch state.
+            *
+            * @see #stitchFinalFrame
+            */
+            AnimationClipNodeBase.prototype._pUpdateStitch = function () {
+                this._pStitchDirty = false;
+
+                this._pLastFrame = (this._pStitchFinalFrame) ? this._pNumFrames : this._pNumFrames - 1;
+
+                this._pTotalDuration = 0;
+                this._pTotalDelta.x = 0;
+                this._pTotalDelta.y = 0;
+                this._pTotalDelta.z = 0;
+            };
+            return AnimationClipNodeBase;
+        })(animators.AnimationNodeBase);
+        animators.AnimationClipNodeBase = AnimationClipNodeBase;
+    })(away.animators || (away.animators = {}));
+    var animators = away.animators;
+})(away || (away = {}));
+var away;
+(function (away) {
+    ///<reference path="../../_definitions.ts"/>
+    (function (animators) {
+        /**
+        * A vertex animation node containing time-based animation data as individual geometry obejcts.
+        */
+        var VertexClipNode = (function (_super) {
+            __extends(VertexClipNode, _super);
+            /**
+            * Creates a new <code>VertexClipNode</code> object.
+            */
+            function VertexClipNode() {
+                _super.call(this);
+                this._frames = new Array();
+                this._translations = new Array();
+
+                this._pStateClass = away.animators.VertexClipState;
+            }
+            Object.defineProperty(VertexClipNode.prototype, "frames", {
+                get: /**
+                * Returns a vector of geometry frames representing the vertex values of each animation frame in the clip.
+                */
+                function () {
+                    return this._frames;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            /**
+            * Adds a geometry object to the internal timeline of the animation node.
+            *
+            * @param geometry The geometry object to add to the timeline of the node.
+            * @param duration The specified duration of the frame in milliseconds.
+            * @param translation The absolute translation of the frame, used in root delta calculations for mesh movement.
+            */
+            VertexClipNode.prototype.addFrame = function (geometry, duration/*uint*/ , translation) {
+                if (typeof translation === "undefined") { translation = null; }
+                this._frames.push(geometry);
+                this._pDurations.push(duration);
+                this._translations.push(translation || new away.geom.Vector3D());
+
+                this._pNumFrames = this._pDurations.length;
+
+                this._pStitchDirty = true;
+            };
+
+            /**
+            * @inheritDoc
+            */
+            VertexClipNode.prototype._pUpdateStitch = function () {
+                _super.prototype._pUpdateStitch.call(this);
+
+                var i = this._pNumFrames - 1;
+                var p1, p2, delta;
+                while (i--) {
+                    this._pTotalDuration += this._pDurations[i];
+                    p1 = this._translations[i];
+                    p2 = this._translations[i + 1];
+                    delta = p2.subtract(p1);
+                    this._pTotalDelta.x += delta.x;
+                    this._pTotalDelta.y += delta.y;
+                    this._pTotalDelta.z += delta.z;
+                }
+
+                if (this._pNumFrames > 1 && (this._pStitchFinalFrame || !this._pLooping)) {
+                    this._pTotalDuration += this._pDurations[this._pNumFrames - 1];
+                    p1 = this._translations[0];
+                    p2 = this._translations[1];
+                    delta = p2.subtract(p1);
+                    this._pTotalDelta.x += delta.x;
+                    this._pTotalDelta.y += delta.y;
+                    this._pTotalDelta.z += delta.z;
+                }
+            };
+            return VertexClipNode;
+        })(animators.AnimationClipNodeBase);
+        animators.VertexClipNode = VertexClipNode;
+    })(away.animators || (away.animators = {}));
+    var animators = away.animators;
+})(away || (away = {}));
+var away;
+(function (away) {
+    ///<reference path="../../_definitions.ts"/>
+    (function (animators) {
+        /**
+        *
+        */
+        var AnimationStateBase = (function () {
+            function AnimationStateBase(animator, animationNode) {
+                this._rootDelta = new away.geom.Vector3D();
+                this._positionDeltaDirty = true;
+                this._pAnimator = animator;
+                this._animationNode = animationNode;
+            }
+            Object.defineProperty(AnimationStateBase.prototype, "positionDelta", {
+                get: /**
+                * Returns a 3d vector representing the translation delta of the animating entity for the current timestep of animation
+                */
+                function () {
+                    if (this._positionDeltaDirty) {
+                        this._pUpdatePositionDelta();
+                    }
+
+                    return this._rootDelta;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            /**
+            * Resets the start time of the node to a  new value.
+            *
+            * @param startTime The absolute start time (in milliseconds) of the node's starting time.
+            */
+            AnimationStateBase.prototype.offset = function (startTime) {
+                this._pStartTime = startTime;
+
+                this._positionDeltaDirty = true;
+            };
+
+            /**
+            * Updates the configuration of the node to its current state.
+            *
+            * @param time The absolute time (in milliseconds) of the animator's play head position.
+            *
+            * @see away.animators.AnimatorBase#update()
+            */
+            AnimationStateBase.prototype.update = function (time) {
+                if (this._pTime == time - this._pStartTime) {
+                    return;
+                }
+
+                this._pUpdateTime(time);
+            };
+
+            /**
+            * Sets the animation phase of the node.
+            *
+            * @param value The phase value to use. 0 represents the beginning of an animation clip, 1 represents the end.
+            */
+            AnimationStateBase.prototype.phase = function (value) {
+            };
+
+            /**
+            * Updates the node's internal playhead position.
+            *
+            * @param time The local time (in milliseconds) of the node's playhead position.
+            */
+            AnimationStateBase.prototype._pUpdateTime = function (time) {
+                this._pTime = time - this._pStartTime;
+
+                this._positionDeltaDirty = true;
+            };
+
+            /**
+            * Updates the node's root delta position
+            */
+            AnimationStateBase.prototype._pUpdatePositionDelta = function () {
+            };
+            return AnimationStateBase;
+        })();
+        animators.AnimationStateBase = AnimationStateBase;
+    })(away.animators || (away.animators = {}));
+    var animators = away.animators;
+})(away || (away = {}));
+var away;
+(function (away) {
+    ///<reference path="../../_definitions.ts"/>
+    (function (animators) {
+        /**
+        *
+        */
+        var AnimationClipState = (function (_super) {
+            __extends(AnimationClipState, _super);
+            function AnimationClipState(animator, animationClipNode) {
+                _super.call(this, animator, animationClipNode);
+                this._pFramesDirty = true;
+
+                this._animationClipNode = animationClipNode;
+            }
+            Object.defineProperty(AnimationClipState.prototype, "blendWeight", {
+                get: /**
+                * Returns a fractional value between 0 and 1 representing the blending ratio of the current playhead position
+                * between the current frame (0) and next frame (1) of the animation.
+                *
+                * @see #currentFrame
+                * @see #nextFrame
+                */
+                function () {
+                    if (this._pFramesDirty)
+                        this._pUpdateFrames();
+
+                    return this._pBlendWeight;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            Object.defineProperty(AnimationClipState.prototype, "currentFrame", {
+                get: /**
+                * Returns the current frame of animation in the clip based on the internal playhead position.
+                */
+                function () {
+                    if (this._pFramesDirty)
+                        this._pUpdateFrames();
+
+                    return this._pCurrentFrame;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            Object.defineProperty(AnimationClipState.prototype, "nextFrame", {
+                get: /**
+                * Returns the next frame of animation in the clip based on the internal playhead position.
+                */
+                function () {
+                    if (this._pFramesDirty)
+                        this._pUpdateFrames();
+
+                    return this._pNextFrame;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            /**
+            * @inheritDoc
+            */
+            AnimationClipState.prototype.update = function (time/*int*/ ) {
+                if (!this._animationClipNode.looping) {
+                    if (time > this._pStartTime + this._animationClipNode.totalDuration)
+                        time = this._pStartTime + this._animationClipNode.totalDuration;
+else if (time < this._pStartTime)
+                        time = this._pStartTime;
+                }
+
+                if (this._pTime == time - this._pStartTime)
+                    return;
+
+                this._pUpdateTime(time);
+            };
+
+            /**
+            * @inheritDoc
+            */
+            AnimationClipState.prototype.phase = function (value) {
+                var time = value * this._animationClipNode.totalDuration + this._pStartTime;
+
+                if (this._pTime == time - this._pStartTime)
+                    return;
+
+                this._pUpdateTime(time);
+            };
+
+            /**
+            * @inheritDoc
+            */
+            AnimationClipState.prototype._pUpdateTime = function (time/*int*/ ) {
+                this._pFramesDirty = true;
+
+                this._pTimeDir = (time - this._pStartTime > this._pTime) ? 1 : -1;
+
+                _super.prototype._pUpdateTime.call(this, time);
+            };
+
+            /**
+            * Updates the nodes internal playhead to determine the current and next animation frame, and the blendWeight between the two.
+            *
+            * @see #currentFrame
+            * @see #nextFrame
+            * @see #blendWeight
+            */
+            AnimationClipState.prototype._pUpdateFrames = function () {
+                this._pFramesDirty = false;
+
+                var looping = this._animationClipNode.looping;
+                var totalDuration = this._animationClipNode.totalDuration;
+                var lastFrame = this._animationClipNode.lastFrame;
+                var time = this._pTime;
+
+                if (looping && (time >= totalDuration || time < 0)) {
+                    time %= totalDuration;
+                    if (time < 0)
+                        time += totalDuration;
+                }
+
+                if (!looping && time >= totalDuration) {
+                    this.notifyPlaybackComplete();
+                    this._pCurrentFrame = lastFrame;
+                    this._pNextFrame = lastFrame;
+                    this._pBlendWeight = 0;
+                } else if (!looping && time <= 0) {
+                    this._pCurrentFrame = 0;
+                    this._pNextFrame = 0;
+                    this._pBlendWeight = 0;
+                } else if (this._animationClipNode.fixedFrameRate) {
+                    var t = time / totalDuration * lastFrame;
+                    this._pCurrentFrame = Math.floor(t);
+                    this._pBlendWeight = t - this._pCurrentFrame;
+                    this._pNextFrame = this._pCurrentFrame + 1;
+                } else {
+                    this._pCurrentFrame = 0;
+                    this._pNextFrame = 0;
+
+                    var dur = 0/*uint*/ , frameTime;
+                    var durations = this._animationClipNode.durations;
+
+                    do {
+                        frameTime = dur;
+                        dur += durations[this._pNextFrame];
+                        this._pCurrentFrame = this._pNextFrame++;
+                    } while(time > dur);
+
+                    if (this._pCurrentFrame == lastFrame) {
+                        this._pCurrentFrame = 0;
+                        this._pNextFrame = 1;
+                    }
+
+                    this._pBlendWeight = (time - frameTime) / durations[this._pCurrentFrame];
+                }
+            };
+
+            AnimationClipState.prototype.notifyPlaybackComplete = function () {
+                if (this._animationStatePlaybackComplete == null)
+                    this._animationStatePlaybackComplete = new away.events.AnimationStateEvent(away.events.AnimationStateEvent.PLAYBACK_COMPLETE, this._pAnimator, this, this._animationClipNode);
+
+                this._animationClipNode.dispatchEvent(this._animationStatePlaybackComplete);
+            };
+            return AnimationClipState;
+        })(animators.AnimationStateBase);
+        animators.AnimationClipState = AnimationClipState;
+    })(away.animators || (away.animators = {}));
+    var animators = away.animators;
+})(away || (away = {}));
+var away;
+(function (away) {
+    ///<reference path="../../_definitions.ts"/>
+    (function (animators) {
+        /**
+        *
+        */
+        var VertexClipState = (function (_super) {
+            __extends(VertexClipState, _super);
+            function VertexClipState(animator, vertexClipNode) {
+                _super.call(this, animator, vertexClipNode);
+
+                this._vertexClipNode = vertexClipNode;
+                this._frames = this._vertexClipNode.frames;
+            }
+            Object.defineProperty(VertexClipState.prototype, "currentGeometry", {
+                get: /**
+                * @inheritDoc
+                */
+                function () {
+                    if (this._pFramesDirty)
+                        this._pUpdateFrames();
+
+                    return this._currentGeometry;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            Object.defineProperty(VertexClipState.prototype, "nextGeometry", {
+                get: /**
+                * @inheritDoc
+                */
+                function () {
+                    if (this._pFramesDirty)
+                        this._pUpdateFrames();
+
+                    return this._nextGeometry;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            /**
+            * @inheritDoc
+            */
+            VertexClipState.prototype._pUpdateFrames = function () {
+                _super.prototype._pUpdateFrames.call(this);
+
+                this._currentGeometry = this._frames[this._pCurrentFrame];
+
+                if (this._vertexClipNode.looping && this._pNextFrame >= this._vertexClipNode.lastFrame) {
+                    this._nextGeometry = this._frames[0];
+                    (this._pAnimator).dispatchCycleEvent();
+                } else
+                    this._nextGeometry = this._frames[this._pNextFrame];
+            };
+
+            /**
+            * @inheritDoc
+            */
+            VertexClipState.prototype._pUpdatePositionDelta = function () {
+                //TODO:implement positiondelta functionality for vertex animations
+            };
+            return VertexClipState;
+        })(animators.AnimationClipState);
+        animators.VertexClipState = VertexClipState;
     })(away.animators || (away.animators = {}));
     var animators = away.animators;
 })(away || (away = {}));
@@ -33368,88 +35762,947 @@ var away;
 })(away || (away = {}));
 var away;
 (function (away) {
-    ///<reference path="../../_definitions.ts"/>
+    ///<reference path="../_definitions.ts"/>
     (function (animators) {
         /**
+        * Provides an abstract base class for data set classes that hold animation data for use in animator classes.
         *
+        * @see away.animators.AnimatorBase
         */
-        var AnimationStateBase = (function () {
-            function AnimationStateBase(animator, animationNode) {
-                this._rootDelta = new away.geom.Vector3D();
-                this._positionDeltaDirty = true;
-                this._animator = animator;
-                this._animationNode = animationNode;
+        var AnimationSetBase = (function (_super) {
+            __extends(AnimationSetBase, _super);
+            function AnimationSetBase() {
+                _super.call(this);
+                this._animations = new Array();
+                this._animationNames = new Array();
+                this._animationDictionary = new Object();
             }
-            Object.defineProperty(AnimationStateBase.prototype, "positionDelta", {
+            /**
+            * Retrieves a temporary GPU register that's still free.
+            *
+            * @param exclude An array of non-free temporary registers.
+            * @param excludeAnother An additional register that's not free.
+            * @return A temporary register that can be used.
+            */
+            AnimationSetBase.prototype._pFindTempReg = function (exclude, excludeAnother) {
+                if (typeof excludeAnother === "undefined") { excludeAnother = null; }
+                var i/*uint*/ ;
+                var reg;
+
+                while (true) {
+                    reg = "vt" + i;
+                    if (exclude.indexOf(reg) == -1 && excludeAnother != reg)
+                        return reg;
+                    ++i;
+                }
+
+                // can't be reached
+                return null;
+            };
+
+            Object.defineProperty(AnimationSetBase.prototype, "usesCPU", {
                 get: /**
-                * Returns a 3d vector representing the translation delta of the animating entity for the current timestep of animation
+                * Indicates whether the properties of the animation data contained within the set combined with
+                * the vertex registers aslready in use on shading materials allows the animation data to utilise
+                * GPU calls.
                 */
                 function () {
-                    if (this._positionDeltaDirty) {
-                        this.pUpdatePositionDelta();
-                    }
-
-                    return this._rootDelta;
+                    return this._usesCPU;
                 },
                 enumerable: true,
                 configurable: true
             });
 
             /**
-            * Resets the start time of the node to a  new value.
+            * Called by the material to reset the GPU indicator before testing whether register space in the shader
+            * is available for running GPU-based animation code.
             *
-            * @param startTime The absolute start time (in milliseconds) of the node's starting time.
+            * @private
             */
-            AnimationStateBase.prototype.offset = function (startTime) {
-                this._startTime = startTime;
+            AnimationSetBase.prototype.resetGPUCompatibility = function () {
+                this._usesCPU = false;
+            };
 
-                this._positionDeltaDirty = true;
+            AnimationSetBase.prototype.cancelGPUCompatibility = function () {
+                this._usesCPU = true;
+            };
+
+            Object.defineProperty(AnimationSetBase.prototype, "assetType", {
+                get: /**
+                * @inheritDoc
+                */
+                function () {
+                    return away.library.AssetType.ANIMATION_SET;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            Object.defineProperty(AnimationSetBase.prototype, "animations", {
+                get: /**
+                * Returns a vector of animation state objects that make up the contents of the animation data set.
+                */
+                function () {
+                    return this._animations;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            Object.defineProperty(AnimationSetBase.prototype, "animationNames", {
+                get: /**
+                * Returns a vector of animation state objects that make up the contents of the animation data set.
+                */
+                function () {
+                    return this._animationNames;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            /**
+            * Check to determine whether a state is registered in the animation set under the given name.
+            *
+            * @param stateName The name of the animation state object to be checked.
+            */
+            AnimationSetBase.prototype.hasAnimation = function (name) {
+                return this._animationDictionary[name] != null;
             };
 
             /**
-            * Updates the configuration of the node to its current state.
+            * Retrieves the animation state object registered in the animation data set under the given name.
             *
-            * @param time The absolute time (in milliseconds) of the animator's play head position.
-            *
-            * @see away3d.animators.AnimatorBase#update()
+            * @param stateName The name of the animation state object to be retrieved.
             */
-            AnimationStateBase.prototype.update = function (time) {
-                if (this._time == time - this._startTime) {
-                    return;
+            AnimationSetBase.prototype.getAnimation = function (name) {
+                return this._animationDictionary[name];
+            };
+
+            /**
+            * Adds an animation state object to the aniamtion data set under the given name.
+            *
+            * @param stateName The name under which the animation state object will be stored.
+            * @param animationState The animation state object to be staored in the set.
+            */
+            AnimationSetBase.prototype.addAnimation = function (node) {
+                if (this._animationDictionary[node.name])
+                    throw new away.errors.AnimationSetError("root node name '" + node.name + "' already exists in the set");
+
+                this._animationDictionary[node.name] = node;
+
+                this._animations.push(node);
+
+                this._animationNames.push(node.name);
+            };
+
+            /**
+            * Cleans up any resources used by the current object.
+            */
+            AnimationSetBase.prototype.dispose = function () {
+            };
+            return AnimationSetBase;
+        })(away.library.NamedAssetBase);
+        animators.AnimationSetBase = AnimationSetBase;
+    })(away.animators || (away.animators = {}));
+    var animators = away.animators;
+})(away || (away = {}));
+var away;
+(function (away) {
+    ///<reference path="../_definitions.ts"/>
+    (function (animators) {
+        /**
+        * The animation data set used by vertex-based animators, containing vertex animation state data.
+        *
+        * @see away.animators.VertexAnimator
+        */
+        var VertexAnimationSet = (function (_super) {
+            __extends(VertexAnimationSet, _super);
+            /**
+            * Creates a new <code>VertexAnimationSet</code> object.
+            *
+            * @param numPoses The number of poses made available at once to the GPU animation code.
+            * @param blendMode Optional value for setting the animation mode of the vertex animator object.
+            *
+            * @see away3d.animators.data.VertexAnimationMode
+            */
+            function VertexAnimationSet(numPoses, blendMode) {
+                if (typeof numPoses === "undefined") { numPoses = 2; }
+                if (typeof blendMode === "undefined") { blendMode = "absolute"; }
+                _super.call(this);
+                this._streamIndices = new Object();
+                this._useNormals = new Object();
+                this._useTangents = new Object();
+                this._numPoses = numPoses;
+                this._blendMode = blendMode;
+            }
+            Object.defineProperty(VertexAnimationSet.prototype, "numPoses", {
+                get: /**
+                * Returns the number of poses made available at once to the GPU animation code.
+                */
+                function () {
+                    return this._numPoses;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            Object.defineProperty(VertexAnimationSet.prototype, "blendMode", {
+                get: /**
+                * Returns the active blend mode of the vertex animator object.
+                */
+                function () {
+                    return this._blendMode;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            Object.defineProperty(VertexAnimationSet.prototype, "useNormals", {
+                get: /**
+                * Returns whether or not normal data is used in last set GPU pass of the vertex shader.
+                */
+                function () {
+                    return this._uploadNormals;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            /**
+            * @inheritDoc
+            */
+            VertexAnimationSet.prototype.getAGALVertexCode = function (pass, sourceRegisters, targetRegisters, profile) {
+                if (this._blendMode == away.animators.VertexAnimationMode.ABSOLUTE)
+                    return this.getAbsoluteAGALCode(pass, sourceRegisters, targetRegisters);
+else
+                    return this.getAdditiveAGALCode(pass, sourceRegisters, targetRegisters);
+            };
+
+            /**
+            * @inheritDoc
+            */
+            VertexAnimationSet.prototype.activate = function (stage3DProxy, pass) {
+                var uID = pass._iUniqueId;
+                this._uploadNormals = this._useNormals[uID];
+                this._uploadTangents = this._useTangents[uID];
+            };
+
+            /**
+            * @inheritDoc
+            */
+            VertexAnimationSet.prototype.deactivate = function (stage3DProxy, pass) {
+                var uID = pass._iUniqueId;
+                var index = this._streamIndices[uID];
+                var context = stage3DProxy._iContext3D;
+                context.setVertexBufferAt(index, null);
+                if (this._uploadNormals)
+                    context.setVertexBufferAt(index + 1, null);
+                if (this._uploadTangents)
+                    context.setVertexBufferAt(index + 2, null);
+            };
+
+            /**
+            * @inheritDoc
+            */
+            VertexAnimationSet.prototype.getAGALFragmentCode = function (pass, shadedTarget, profile) {
+                return "";
+            };
+
+            /**
+            * @inheritDoc
+            */
+            VertexAnimationSet.prototype.getAGALUVCode = function (pass, UVSource, UVTarget) {
+                return "mov " + UVTarget + "," + UVSource + "\n";
+            };
+
+            /**
+            * @inheritDoc
+            */
+            VertexAnimationSet.prototype.doneAGALCode = function (pass) {
+            };
+
+            /**
+            * Generates the vertex AGAL code for absolute blending.
+            */
+            VertexAnimationSet.prototype.getAbsoluteAGALCode = function (pass, sourceRegisters, targetRegisters) {
+                var code = "";
+                var uID = pass._iUniqueId;
+                var temp1 = this._pFindTempReg(targetRegisters);
+                var temp2 = this._pFindTempReg(targetRegisters, temp1);
+                var regs = ["x", "y", "z", "w"];
+                var len = sourceRegisters.length;
+                var constantReg = "vc" + pass.numUsedVertexConstants;
+                var useTangents = Boolean(this._useTangents[uID] = len > 2);
+                this._useNormals[uID] = len > 1;
+
+                if (len > 2)
+                    len = 2;
+                var streamIndex = this._streamIndices[uID] = pass.numUsedStreams;
+
+                for (var i = 0; i < len; ++i) {
+                    code += "mul " + temp1 + ", " + sourceRegisters[i] + ", " + constantReg + "." + regs[0] + "\n";
+
+                    for (var j = 1; j < this._numPoses; ++j) {
+                        code += "mul " + temp2 + ", va" + streamIndex + ", " + constantReg + "." + regs[j] + "\n";
+
+                        if (j < this._numPoses - 1)
+                            code += "add " + temp1 + ", " + temp1 + ", " + temp2 + "\n";
+
+                        ++streamIndex;
+                    }
+
+                    code += "add " + targetRegisters[i] + ", " + temp1 + ", " + temp2 + "\n";
                 }
 
-                this.pUpdateTime(time);
+                if (useTangents) {
+                    code += "dp3 " + temp1 + ".x, " + sourceRegisters[Math.floor(2)] + ", " + targetRegisters[Math.floor(1)] + "\n" + "mul " + temp1 + ", " + targetRegisters[Math.floor(1)] + ", " + temp1 + ".x			 \n" + "sub " + targetRegisters[Math.floor(2)] + ", " + sourceRegisters[Math.floor(2)] + ", " + temp1 + "\n";
+                }
+                return code;
             };
 
             /**
-            * Sets the animation phase of the node.
+            * Generates the vertex AGAL code for additive blending.
+            */
+            VertexAnimationSet.prototype.getAdditiveAGALCode = function (pass, sourceRegisters, targetRegisters) {
+                var code = "";
+                var uID = pass._iUniqueId;
+                var len = sourceRegisters.length;
+                var regs = ["x", "y", "z", "w"];
+                var temp1 = this._pFindTempReg(targetRegisters);
+                var k/*uint*/ ;
+                var useTangents = Boolean(this._useTangents[uID] = len > 2);
+                var useNormals = Boolean(this._useNormals[uID] = len > 1);
+                var streamIndex = this._streamIndices[uID] = pass.numUsedStreams;
+
+                if (len > 2)
+                    len = 2;
+
+                code += "mov  " + targetRegisters[0] + ", " + sourceRegisters[0] + "\n";
+                if (useNormals)
+                    code += "mov " + targetRegisters[1] + ", " + sourceRegisters[1] + "\n";
+
+                for (var i = 0; i < len; ++i) {
+                    for (var j = 0; j < this._numPoses; ++j) {
+                        code += "mul " + temp1 + ", va" + (streamIndex + k) + ", vc" + pass.numUsedVertexConstants + "." + regs[j] + "\n" + "add " + targetRegisters[i] + ", " + targetRegisters[i] + ", " + temp1 + "\n";
+                        k++;
+                    }
+                }
+
+                if (useTangents) {
+                    code += "dp3 " + temp1 + ".x, " + sourceRegisters[Math.floor(2)] + ", " + targetRegisters[Math.floor(1)] + "\n" + "mul " + temp1 + ", " + targetRegisters[Math.floor(1)] + ", " + temp1 + ".x			 \n" + "sub " + targetRegisters[Math.floor(2)] + ", " + sourceRegisters[Math.floor(2)] + ", " + temp1 + "\n";
+                }
+
+                return code;
+            };
+            return VertexAnimationSet;
+        })(animators.AnimationSetBase);
+        animators.VertexAnimationSet = VertexAnimationSet;
+    })(away.animators || (away.animators = {}));
+    var animators = away.animators;
+})(away || (away = {}));
+var away;
+(function (away) {
+    ///<reference path="../_definitions.ts"/>
+    (function (animators) {
+        /**
+        * Dispatched when playback of an animation inside the animator object starts.
+        *
+        * @eventType away3d.events.AnimatorEvent
+        */
+        //[Event(name="start", type="away3d.events.AnimatorEvent")]
+        /**
+        * Dispatched when playback of an animation inside the animator object stops.
+        *
+        * @eventType away3d.events.AnimatorEvent
+        */
+        //[Event(name="stop", type="away3d.events.AnimatorEvent")]
+        /**
+        * Dispatched when playback of an animation reaches the end of an animation.
+        *
+        * @eventType away3d.events.AnimatorEvent
+        */
+        //[Event(name="cycle_complete", type="away3d.events.AnimatorEvent")]
+        /**
+        * Provides an abstract base class for animator classes that control animation output from a data set subtype of <code>AnimationSetBase</code>.
+        *
+        * @see away.animators.AnimationSetBase
+        */
+        var AnimatorBase = (function (_super) {
+            __extends(AnimatorBase, _super);
+            /**
+            * Creates a new <code>AnimatorBase</code> object.
+            *
+            * @param animationSet The animation data set to be used by the animator object.
+            */
+            function AnimatorBase(animationSet) {
+                _super.call(this);
+                this._autoUpdate = true;
+                this._playbackSpeed = 1;
+                this._pOwners = new Array();
+                this._pAbsoluteTime = 0;
+                this._animationStates = new Object();
+                /**
+                * Enables translation of the animated mesh from data returned per frame via the positionDelta property of the active animation node. Defaults to true.
+                *
+                * @see away.animators.states.IAnimationState#positionDelta
+                */
+                this.updatePosition = true;
+
+                this._pAnimationSet = animationSet;
+
+                this._broadcaster = new away.utils.RequestAnimationFrame(this.onEnterFrame, this);
+            }
+            AnimatorBase.prototype.getAnimationState = function (node) {
+                var className = node.stateClass;
+                var uID = node._iUniqueId;
+
+                if (this._animationStates[uID] == null)
+                    this._animationStates[uID] = new className(this, node);
+
+                return this._animationStates[uID];
+            };
+
+            AnimatorBase.prototype.getAnimationStateByName = function (name) {
+                return this.getAnimationState(this._pAnimationSet.getAnimation(name));
+            };
+
+            Object.defineProperty(AnimatorBase.prototype, "absoluteTime", {
+                get: /**
+                * Returns the internal absolute time of the animator, calculated by the current time and the playback speed.
+                *
+                * @see #time
+                * @see #playbackSpeed
+                */
+                function () {
+                    return this._pAbsoluteTime;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            Object.defineProperty(AnimatorBase.prototype, "animationSet", {
+                get: /**
+                * Returns the animation data set in use by the animator.
+                */
+                function () {
+                    return this._pAnimationSet;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            Object.defineProperty(AnimatorBase.prototype, "activeState", {
+                get: /**
+                * Returns the current active animation state.
+                */
+                function () {
+                    return this._pActiveState;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            Object.defineProperty(AnimatorBase.prototype, "activeAnimation", {
+                get: /**
+                * Returns the current active animation node.
+                */
+                function () {
+                    return this._pAnimationSet.getAnimation(this._pActiveAnimationName);
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            Object.defineProperty(AnimatorBase.prototype, "activeAnimationName", {
+                get: /**
+                * Returns the current active animation node.
+                */
+                function () {
+                    return this._pActiveAnimationName;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            Object.defineProperty(AnimatorBase.prototype, "autoUpdate", {
+                get: /**
+                * Determines whether the animators internal update mechanisms are active. Used in cases
+                * where manual updates are required either via the <code>time</code> property or <code>update()</code> method.
+                * Defaults to true.
+                *
+                * @see #time
+                * @see #update()
+                */
+                function () {
+                    return this._autoUpdate;
+                },
+                set: function (value) {
+                    if (this._autoUpdate == value)
+                        return;
+
+                    this._autoUpdate = value;
+
+                    if (this._autoUpdate)
+                        this.start();
+else
+                        this.stop();
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+
+            Object.defineProperty(AnimatorBase.prototype, "time", {
+                get: /**
+                * Gets and sets the internal time clock of the animator.
+                */
+                function () {
+                    return this._time;
+                },
+                set: function (value/*int*/ ) {
+                    if (this._time == value)
+                        return;
+
+                    this.update(value);
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+
+            /**
+            * Sets the animation phase of the current active state's animation clip(s).
             *
             * @param value The phase value to use. 0 represents the beginning of an animation clip, 1 represents the end.
             */
-            AnimationStateBase.prototype.phase = function (value) {
+            AnimatorBase.prototype.phase = function (value) {
+                this._pActiveState.phase(value);
+            };
+
+            Object.defineProperty(AnimatorBase.prototype, "playbackSpeed", {
+                get: /**
+                * The amount by which passed time should be scaled. Used to slow down or speed up animations. Defaults to 1.
+                */
+                function () {
+                    return this._playbackSpeed;
+                },
+                set: function (value) {
+                    this._playbackSpeed = value;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+
+            /**
+            * Resumes the automatic playback clock controling the active state of the animator.
+            */
+            AnimatorBase.prototype.start = function () {
+                if (this._isPlaying || !this._autoUpdate)
+                    return;
+
+                this._time = this._pAbsoluteTime = away.utils.getTimer();
+
+                this._isPlaying = true;
+
+                this._broadcaster.start();
+
+                if (!this.hasEventListener(away.events.AnimatorEvent.START))
+                    return;
+
+                if (this._startEvent == null)
+                    this._startEvent = new away.events.AnimatorEvent(away.events.AnimatorEvent.START, this);
+
+                this.dispatchEvent(this._startEvent);
             };
 
             /**
-            * Updates the node's internal playhead position.
+            * Pauses the automatic playback clock of the animator, in case manual updates are required via the
+            * <code>time</code> property or <code>update()</code> method.
             *
-            * @param time The local time (in milliseconds) of the node's playhead position.
+            * @see #time
+            * @see #update()
             */
-            AnimationStateBase.prototype.pUpdateTime = function (time) {
-                this._time = time - this._startTime;
+            AnimatorBase.prototype.stop = function () {
+                if (!this._isPlaying)
+                    return;
 
-                this._positionDeltaDirty = true;
+                this._isPlaying = false;
+
+                this._broadcaster.stop();
+
+                if (!this.hasEventListener(away.events.AnimatorEvent.STOP))
+                    return;
+
+                if (this._stopEvent == null)
+                    this._stopEvent = new away.events.AnimatorEvent(away.events.AnimatorEvent.STOP, this);
+
+                this.dispatchEvent(this._stopEvent);
             };
 
             /**
-            * Updates the node's root delta position
+            * Provides a way to manually update the active state of the animator when automatic
+            * updates are disabled.
+            *
+            * @see #stop()
+            * @see #autoUpdate
             */
-            AnimationStateBase.prototype.pUpdatePositionDelta = function () {
+            AnimatorBase.prototype.update = function (time/*int*/ ) {
+                var dt = (time - this._time) * this.playbackSpeed;
+
+                this._pUpdateDeltaTime(dt);
+
+                this._time = time;
             };
-            return AnimationStateBase;
-        })();
-        animators.AnimationStateBase = AnimationStateBase;
+
+            AnimatorBase.prototype.reset = function (name, offset) {
+                if (typeof offset === "undefined") { offset = 0; }
+                this.getAnimationState(this._pAnimationSet.getAnimation(name)).offset(offset + this._pAbsoluteTime);
+            };
+
+            /**
+            * Used by the mesh object to which the animator is applied, registers the owner for internal use.
+            *
+            * @private
+            */
+            AnimatorBase.prototype.addOwner = function (mesh) {
+                this._pOwners.push(mesh);
+            };
+
+            /**
+            * Used by the mesh object from which the animator is removed, unregisters the owner for internal use.
+            *
+            * @private
+            */
+            AnimatorBase.prototype.removeOwner = function (mesh) {
+                this._pOwners.splice(this._pOwners.indexOf(mesh), 1);
+            };
+
+            /**
+            * Internal abstract method called when the time delta property of the animator's contents requires updating.
+            *
+            * @private
+            */
+            AnimatorBase.prototype._pUpdateDeltaTime = function (dt) {
+                this._pAbsoluteTime += dt;
+
+                this._pActiveState.update(this._pAbsoluteTime);
+
+                if (this.updatePosition)
+                    this.applyPositionDelta();
+            };
+
+            /**
+            * Enter frame event handler for automatically updating the active state of the animator.
+            */
+            AnimatorBase.prototype.onEnterFrame = function (event) {
+                if (typeof event === "undefined") { event = null; }
+                this.update(away.utils.getTimer());
+            };
+
+            AnimatorBase.prototype.applyPositionDelta = function () {
+                var delta = this._pActiveState.positionDelta;
+                var dist = delta.length;
+                var len/*uint*/ ;
+                if (dist > 0) {
+                    len = this._pOwners.length;
+                    for (var i = 0; i < len; ++i)
+                        this._pOwners[i].translateLocal(delta, dist);
+                }
+            };
+
+            /**
+            *  for internal use.
+            *
+            * @private
+            */
+            AnimatorBase.prototype.dispatchCycleEvent = function () {
+                if (this.hasEventListener(away.events.AnimatorEvent.CYCLE_COMPLETE)) {
+                    if (this._cycleEvent == null)
+                        this._cycleEvent = new away.events.AnimatorEvent(away.events.AnimatorEvent.CYCLE_COMPLETE, this);
+
+                    this.dispatchEvent(this._cycleEvent);
+                }
+            };
+
+            /**
+            * @inheritDoc
+            */
+            AnimatorBase.prototype.dispose = function () {
+            };
+
+            Object.defineProperty(AnimatorBase.prototype, "assetType", {
+                get: /**
+                * @inheritDoc
+                */
+                function () {
+                    return away.library.AssetType.ANIMATOR;
+                },
+                enumerable: true,
+                configurable: true
+            });
+            return AnimatorBase;
+        })(away.library.NamedAssetBase);
+        animators.AnimatorBase = AnimatorBase;
     })(away.animators || (away.animators = {}));
     var animators = away.animators;
+})(away || (away = {}));
+var away;
+(function (away) {
+    (function (animators) {
+        /**
+        * Provides an interface for assigning vertex-based animation data sets to mesh-based entity objects
+        * and controlling the various available states of animation through an interative playhead that can be
+        * automatically updated or manually triggered.
+        */
+        var VertexAnimator = (function (_super) {
+            __extends(VertexAnimator, _super);
+            /**
+            * Creates a new <code>VertexAnimator</code> object.
+            *
+            * @param vertexAnimationSet The animation data set containing the vertex animations used by the animator.
+            */
+            function VertexAnimator(vertexAnimationSet) {
+                _super.call(this, vertexAnimationSet);
+                this._poses = new Array();
+                this._weights = Array(1, 0, 0, 0);
+
+                this._vertexAnimationSet = vertexAnimationSet;
+                this._numPoses = vertexAnimationSet.numPoses;
+                this._blendMode = vertexAnimationSet.blendMode;
+            }
+            /**
+            * @inheritDoc
+            */
+            VertexAnimator.prototype.clone = function () {
+                return new VertexAnimator(this._vertexAnimationSet);
+            };
+
+            /**
+            * Plays a sequence with a given name. If the sequence is not found, it may not be loaded yet, and it will retry every frame.
+            * @param sequenceName The name of the clip to be played.
+            */
+            VertexAnimator.prototype.play = function (name, transition, offset) {
+                if (typeof transition === "undefined") { transition = null; }
+                if (typeof offset === "undefined") { offset = NaN; }
+                if (this._pActiveAnimationName == name)
+                    return;
+
+                this._pActiveAnimationName = name;
+
+                if (!this._pAnimationSet.hasAnimation(name))
+                    throw new Error("Animation root node " + name + " not found!");
+
+                this._pActiveNode = this._pAnimationSet.getAnimation(name);
+
+                this._pActiveState = this.getAnimationState(this._pActiveNode);
+
+                if (this.updatePosition) {
+                    //update straight away to reset position deltas
+                    this._pActiveState.update(this._pAbsoluteTime);
+                    this._pActiveState.positionDelta;
+                }
+
+                this._activeVertexState = this._pActiveState;
+
+                this.start();
+
+                if (!isNaN(offset))
+                    this.reset(name, offset);
+            };
+
+            /**
+            * @inheritDoc
+            */
+            VertexAnimator.prototype._pUpdateDeltaTime = function (dt) {
+                _super.prototype._pUpdateDeltaTime.call(this, dt);
+
+                this._poses[0] = this._activeVertexState.currentGeometry;
+                this._poses[1] = this._activeVertexState.nextGeometry;
+                this._weights[0] = 1 - (this._weights[1] = this._activeVertexState.blendWeight);
+            };
+
+            /**
+            * @inheritDoc
+            */
+            VertexAnimator.prototype.setRenderState = function (stage3DProxy, renderable, vertexConstantOffset/*int*/ , vertexStreamOffset/*int*/ , camera) {
+                if (!this._poses.length) {
+                    this.setNullPose(stage3DProxy, renderable, vertexConstantOffset, vertexStreamOffset);
+                    return;
+                }
+
+                // this type of animation can only be SubMesh
+                var subMesh = renderable;
+                var subGeom;
+                var i/*uint*/ ;
+                var len = this._numPoses;
+
+                stage3DProxy._iContext3D.setProgramConstantsFromArray(away.display3D.Context3DProgramType.VERTEX, vertexConstantOffset, this._weights, 1);
+
+                if (this._blendMode == animators.VertexAnimationMode.ABSOLUTE) {
+                    i = 1;
+                    subGeom = this._poses[0].subGeometries[subMesh._iIndex];
+
+                    if (subGeom)
+                        subMesh.subGeometry = subGeom;
+                } else
+                    i = 0;
+
+                for (; i < len; ++i) {
+                    subGeom = this._poses[i].subGeometries[subMesh._iIndex] || subMesh.subGeometry;
+
+                    subGeom.activateVertexBuffer(vertexStreamOffset++, stage3DProxy);
+
+                    if (this._vertexAnimationSet.useNormals)
+                        subGeom.activateVertexNormalBuffer(vertexStreamOffset++, stage3DProxy);
+                }
+            };
+
+            VertexAnimator.prototype.setNullPose = function (stage3DProxy, renderable, vertexConstantOffset/*int*/ , vertexStreamOffset/*int*/ ) {
+                stage3DProxy._iContext3D.setProgramConstantsFromArray(away.display3D.Context3DProgramType.VERTEX, vertexConstantOffset, this._weights, 1);
+
+                if (this._blendMode == animators.VertexAnimationMode.ABSOLUTE) {
+                    var len = this._numPoses;
+                    for (var i = 1; i < len; ++i) {
+                        renderable.activateVertexBuffer(vertexStreamOffset++, stage3DProxy);
+
+                        if (this._vertexAnimationSet.useNormals)
+                            renderable.activateVertexNormalBuffer(vertexStreamOffset++, stage3DProxy);
+                    }
+                }
+                // todo: set temp data for additive?
+            };
+
+            /**
+            * Verifies if the animation will be used on cpu. Needs to be true for all passes for a material to be able to use it on gpu.
+            * Needs to be called if gpu code is potentially required.
+            */
+            VertexAnimator.prototype.testGPUCompatibility = function (pass) {
+            };
+            return VertexAnimator;
+        })(animators.AnimatorBase);
+        animators.VertexAnimator = VertexAnimator;
+    })(away.animators || (away.animators = {}));
+    var animators = away.animators;
+})(away || (away = {}));
+var away;
+(function (away) {
+    ///<reference path="../_definitions.ts"/>
+    (function (events) {
+        /**
+        * Dispatched to notify changes in an animation state's state.
+        */
+        var AnimationStateEvent = (function (_super) {
+            __extends(AnimationStateEvent, _super);
+            /**
+            * Create a new <code>AnimatonStateEvent</code>
+            *
+            * @param type The event type.
+            * @param animator The animation state object that is the subject of this event.
+            * @param animationNode The animation node inside the animation state from which the event originated.
+            */
+            function AnimationStateEvent(type, animator, animationState, animationNode) {
+                _super.call(this, type);
+
+                this._animator = animator;
+                this._animationState = animationState;
+                this._animationNode = animationNode;
+            }
+            Object.defineProperty(AnimationStateEvent.prototype, "animator", {
+                get: /**
+                * The animator object that is the subject of this event.
+                */
+                function () {
+                    return this._animator;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            Object.defineProperty(AnimationStateEvent.prototype, "animationState", {
+                get: /**
+                * The animation state object that is the subject of this event.
+                */
+                function () {
+                    return this._animationState;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            Object.defineProperty(AnimationStateEvent.prototype, "animationNode", {
+                get: /**
+                * The animation node inside the animation state from which the event originated.
+                */
+                function () {
+                    return this._animationNode;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            /**
+            * Clones the event.
+            *
+            * @return An exact duplicate of the current object.
+            */
+            AnimationStateEvent.prototype.clone = function () {
+                return new AnimationStateEvent(this.type, this._animator, this._animationState, this._animationNode);
+            };
+            AnimationStateEvent.PLAYBACK_COMPLETE = "playbackComplete";
+
+            AnimationStateEvent.TRANSITION_COMPLETE = "transitionComplete";
+            return AnimationStateEvent;
+        })(events.Event);
+        events.AnimationStateEvent = AnimationStateEvent;
+    })(away.events || (away.events = {}));
+    var events = away.events;
+})(away || (away = {}));
+var away;
+(function (away) {
+    ///<reference path="../_definitions.ts"/>
+    (function (events) {
+        /**
+        * Dispatched to notify changes in an animator's state.
+        */
+        var AnimatorEvent = (function (_super) {
+            __extends(AnimatorEvent, _super);
+            /**
+            * Create a new <code>AnimatorEvent</code> object.
+            *
+            * @param type The event type.
+            * @param animator The animator object that is the subject of this event.
+            */
+            function AnimatorEvent(type, animator) {
+                _super.call(this, type);
+                this._animator = animator;
+            }
+            Object.defineProperty(AnimatorEvent.prototype, "animator", {
+                get: function () {
+                    return this._animator;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+            /**
+            * Clones the event.
+            *
+            * @return An exact duplicate of the current event object.
+            */
+            AnimatorEvent.prototype.clone = function () {
+                return new AnimatorEvent(this.type, this._animator);
+            };
+            AnimatorEvent.START = "start";
+
+            AnimatorEvent.STOP = "stop";
+
+            AnimatorEvent.CYCLE_COMPLETE = "cycle_complete";
+            return AnimatorEvent;
+        })(events.Event);
+        events.AnimatorEvent = AnimatorEvent;
+    })(away.events || (away.events = {}));
+    var events = away.events;
 })(away || (away = {}));
 var away;
 (function (away) {
@@ -33473,31 +36726,22 @@ var away;
 })(away || (away = {}));
 var away;
 (function (away) {
+    (function (errors) {
+        var AnimationSetError = (function (_super) {
+            __extends(AnimationSetError, _super);
+            function AnimationSetError(message) {
+                _super.call(this, message);
+            }
+            return AnimationSetError;
+        })(errors.Error);
+        errors.AnimationSetError = AnimationSetError;
+    })(away.errors || (away.errors = {}));
+    var errors = away.errors;
+})(away || (away = {}));
+var away;
+(function (away) {
     ///<reference path="../../_definitions.ts"/>
     (function (materials) {
-        //import away3d.animators.data.AnimationRegisterCache;
-        //import away3d.animators.IAnimationSet;
-        //import away3d.arcane;
-        //import away3d.cameras.Camera3D;
-        //import away3d.core.base.IRenderable;
-        //import away3d.managers.AGALProgram3DCache;
-        //import away3d.managers.Stage3DProxy;
-        //import away3d.debug.Debug;
-        //import away3d.errors.AbstractMethodError;
-        //import away3d.materials.MaterialBase;
-        //import away3d.materials.lightpickers.LightPickerBase;
-        //import flash.display.BlendMode;
-        //import flash.display3D.Context3D;
-        //import flash.display3D.Context3DBlendFactor;
-        //import flash.display3D.Context3DCompareMode;
-        //import flash.display3D.Context3DTriangleFace;
-        //import flash.display3D.Program3D;
-        //import flash.display3D.textures.TextureBase;
-        //import flash.events.Event;
-        //import flash.events.EventDispatcher;
-        //import flash.geom.Matrix3D;
-        //import flash.geom.Rectangle;
-        //use namespace arcane;
         /**
         * MaterialPassBase provides an abstract base class for material shader passes. A material pass constitutes at least
         * a render call per required renderable.
@@ -33536,6 +36780,8 @@ var away;
                 this._renderToTexture = renderToTexture;
                 this._pNumUsedStreams = 1;
                 this._pNumUsedVertexConstants = 5;
+
+                this._iUniqueId = away.materials.MaterialPassBase.MATERIALPASS_ID_COUNT++;
             }
             Object.defineProperty(MaterialPassBase.prototype, "material", {
                 get: /**
@@ -38640,11 +41886,11 @@ var away;
             */
             function ShadowMapMethodBase(castingLight) {
                 _super.call(this);
-                this._epsilon = .02;
-                this._alpha = 1;
-                this._castingLight = castingLight;
+                this._pEpsilon = .02;
+                this._pAlpha = 1;
+                this._pCastingLight = castingLight;
                 castingLight.castsShadows = true;
-                this._shadowMapper = castingLight.shadowMapper;
+                this._pShadowMapper = castingLight.shadowMapper;
             }
             Object.defineProperty(ShadowMapMethodBase.prototype, "assetType", {
                 get: /**
@@ -38662,10 +41908,10 @@ var away;
                 * The "transparency" of the shadows. This allows making shadows less strong.
                 */
                 function () {
-                    return this._alpha;
+                    return this._pAlpha;
                 },
                 set: function (value) {
-                    this._alpha = value;
+                    this._pAlpha = value;
                 },
                 enumerable: true,
                 configurable: true
@@ -38677,7 +41923,7 @@ var away;
                 * The light casting the shadows.
                 */
                 function () {
-                    return this._castingLight;
+                    return this._pCastingLight;
                 },
                 enumerable: true,
                 configurable: true
@@ -38689,10 +41935,10 @@ var away;
                 * calculated depth value. Increase this if shadow banding occurs, decrease it if the shadow seems to be too detached.
                 */
                 function () {
-                    return this._epsilon;
+                    return this._pEpsilon;
                 },
                 set: function (value) {
-                    this._epsilon = value;
+                    this._pEpsilon = value;
                 },
                 enumerable: true,
                 configurable: true
@@ -38709,6 +41955,870 @@ var away;
             return ShadowMapMethodBase;
         })(away.materials.ShadingMethodBase);
         materials.ShadowMapMethodBase = ShadowMapMethodBase;
+    })(away.materials || (away.materials = {}));
+    var materials = away.materials;
+})(away || (away = {}));
+var away;
+(function (away) {
+    ///<reference path="../../_definitions.ts"/>
+    (function (materials) {
+        /**
+        * SimpleShadowMapMethodBase provides an abstract method for simple (non-wrapping) shadow map methods.
+        */
+        var SimpleShadowMapMethodBase = (function (_super) {
+            __extends(SimpleShadowMapMethodBase, _super);
+            /**
+            * Creates a new SimpleShadowMapMethodBase object.
+            * @param castingLight The light used to cast shadows.
+            */
+            function SimpleShadowMapMethodBase(castingLight) {
+                this._pUsePoint = (castingLight instanceof away.lights.PointLight);
+                _super.call(this, castingLight);
+            }
+            /**
+            * @inheritDoc
+            */
+            SimpleShadowMapMethodBase.prototype.iInitVO = function (vo) {
+                vo.needsView = true;
+                vo.needsGlobalVertexPos = true;
+                vo.needsGlobalFragmentPos = this._pUsePoint;
+                vo.needsNormals = vo.numLights > 0;
+            };
+
+            /**
+            * @inheritDoc
+            */
+            SimpleShadowMapMethodBase.prototype.iInitConstants = function (vo) {
+                var fragmentData = vo.fragmentData;
+                var vertexData = vo.vertexData;
+                var index = vo.fragmentConstantsIndex;
+                fragmentData[index] = 1.0;
+                fragmentData[index + 1] = 1 / 255.0;
+                fragmentData[index + 2] = 1 / 65025.0;
+                fragmentData[index + 3] = 1 / 16581375.0;
+
+                fragmentData[index + 6] = 0;
+                fragmentData[index + 7] = 1;
+
+                if (this._pUsePoint) {
+                    fragmentData[index + 8] = 0;
+                    fragmentData[index + 9] = 0;
+                    fragmentData[index + 10] = 0;
+                    fragmentData[index + 11] = 1;
+                }
+
+                index = vo.vertexConstantsIndex;
+                if (index != -1) {
+                    vertexData[index] = .5;
+                    vertexData[index + 1] = .5;
+                    vertexData[index + 2] = 0.0;
+                    vertexData[index + 3] = 1.0;
+                }
+            };
+
+            Object.defineProperty(SimpleShadowMapMethodBase.prototype, "_iDepthMapCoordReg", {
+                get: /**
+                * Wrappers that override the vertex shader need to set this explicitly
+                */
+                function () {
+                    return this._pDepthMapCoordReg;
+                },
+                set: function (value) {
+                    this._pDepthMapCoordReg = value;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+
+            /**
+            * @inheritDoc
+            */
+            SimpleShadowMapMethodBase.prototype.iCleanCompilationData = function () {
+                _super.prototype.iCleanCompilationData.call(this);
+
+                this._pDepthMapCoordReg = null;
+            };
+
+            /**
+            * @inheritDoc
+            */
+            SimpleShadowMapMethodBase.prototype.iGetVertexCode = function (vo, regCache) {
+                return this._pUsePoint ? this._pGetPointVertexCode(vo, regCache) : this.pGetPlanarVertexCode(vo, regCache);
+            };
+
+            /**
+            * Gets the vertex code for shadow mapping with a point light.
+            *
+            * @param vo The MethodVO object linking this method with the pass currently being compiled.
+            * @param regCache The register cache used during the compilation.
+            */
+            SimpleShadowMapMethodBase.prototype._pGetPointVertexCode = function (vo, regCache) {
+                vo.vertexConstantsIndex = -1;
+                return "";
+            };
+
+            /**
+            * Gets the vertex code for shadow mapping with a planar shadow map (fe: directional lights).
+            *
+            * @param vo The MethodVO object linking this method with the pass currently being compiled.
+            * @param regCache The register cache used during the compilation.
+            */
+            SimpleShadowMapMethodBase.prototype.pGetPlanarVertexCode = function (vo, regCache) {
+                var code = "";
+                var temp = regCache.getFreeVertexVectorTemp();
+                var dataReg = regCache.getFreeVertexConstant();
+                var depthMapProj = regCache.getFreeVertexConstant();
+                regCache.getFreeVertexConstant();
+                regCache.getFreeVertexConstant();
+                regCache.getFreeVertexConstant();
+                this._pDepthMapCoordReg = regCache.getFreeVarying();
+                vo.vertexConstantsIndex = dataReg.index * 4;
+
+                // todo: can epsilon be applied here instead of fragment shader?
+                code += "m44 " + temp + ", " + this._sharedRegisters.globalPositionVertex + ", " + depthMapProj + "\n" + "div " + temp + ", " + temp + ", " + temp + ".w\n" + "mul " + temp + ".xy, " + temp + ".xy, " + dataReg + ".xy\n" + "add " + this._pDepthMapCoordReg + ", " + temp + ", " + dataReg + ".xxwz\n";
+
+                //"sub " + this._pDepthMapCoordReg + ".z, " + this._pDepthMapCoordReg + ".z, " + this._pDepthMapCoordReg + ".w\n";
+                return code;
+            };
+
+            /**
+            * @inheritDoc
+            */
+            SimpleShadowMapMethodBase.prototype.iGetFragmentCode = function (vo, regCache, targetReg) {
+                var code = this._pUsePoint ? this._pGetPointFragmentCode(vo, regCache, targetReg) : this._pGetPlanarFragmentCode(vo, regCache, targetReg);
+                code += "add " + targetReg + ".w, " + targetReg + ".w, fc" + (vo.fragmentConstantsIndex / 4 + 1) + ".y\n" + "sat " + targetReg + ".w, " + targetReg + ".w\n";
+                return code;
+            };
+
+            /**
+            * Gets the fragment code for shadow mapping with a planar shadow map.
+            * @param vo The MethodVO object linking this method with the pass currently being compiled.
+            * @param regCache The register cache used during the compilation.
+            * @param targetReg The register to contain the shadow coverage
+            * @return
+            */
+            SimpleShadowMapMethodBase.prototype._pGetPlanarFragmentCode = function (vo, regCache, targetReg) {
+                throw new away.errors.AbstractMethodError();
+                return "";
+            };
+
+            /**
+            * Gets the fragment code for shadow mapping with a point light.
+            * @param vo The MethodVO object linking this method with the pass currently being compiled.
+            * @param regCache The register cache used during the compilation.
+            * @param targetReg The register to contain the shadow coverage
+            * @return
+            */
+            SimpleShadowMapMethodBase.prototype._pGetPointFragmentCode = function (vo, regCache, targetReg) {
+                throw new away.errors.AbstractMethodError();
+                return "";
+            };
+
+            /**
+            * @inheritDoc
+            */
+            SimpleShadowMapMethodBase.prototype.iSetRenderState = function (vo, renderable, stage3DProxy, camera) {
+                if (!this._pUsePoint)
+                    (this._pShadowMapper).iDepthProjection.copyRawDataTo(vo.vertexData, vo.vertexConstantsIndex + 4, true);
+            };
+
+            /**
+            * Gets the fragment code for combining this method with a cascaded shadow map method.
+            * @param vo The MethodVO object linking this method with the pass currently being compiled.
+            * @param regCache The register cache used during the compilation.
+            * @param decodeRegister The register containing the data to decode the shadow map depth value.
+            * @param depthTexture The texture containing the shadow map.
+            * @param depthProjection The projection of the fragment relative to the light.
+            * @param targetRegister The register to contain the shadow coverage
+            * @return
+            */
+            SimpleShadowMapMethodBase.prototype._iGetCascadeFragmentCode = function (vo, regCache, decodeRegister, depthTexture, depthProjection, targetRegister) {
+                throw new Error("This shadow method is incompatible with cascade shadows");
+            };
+
+            /**
+            * @inheritDoc
+            */
+            SimpleShadowMapMethodBase.prototype.iActivate = function (vo, stage3DProxy) {
+                var fragmentData = vo.fragmentData;
+                var index = vo.fragmentConstantsIndex;
+
+                if (this._pUsePoint)
+                    fragmentData[index + 4] = -Math.pow(1 / ((this._pCastingLight).fallOff * this._pEpsilon), 2);
+else
+                    vo.vertexData[vo.vertexConstantsIndex + 3] = -1 / ((this._pShadowMapper).depth * this._pEpsilon);
+
+                fragmentData[index + 5] = 1 - this._pAlpha;
+                if (this._pUsePoint) {
+                    var pos = this._pCastingLight.scenePosition;
+                    fragmentData[index + 8] = pos.x;
+                    fragmentData[index + 9] = pos.y;
+                    fragmentData[index + 10] = pos.z;
+
+                    // used to decompress distance
+                    var f = (this._pCastingLight).fallOff;
+                    fragmentData[index + 11] = 1 / (2 * f * f);
+                }
+                stage3DProxy._iContext3D.setTextureAt(vo.texturesIndex, this._pCastingLight.shadowMapper.depthMap.getTextureForStage3D(stage3DProxy));
+            };
+
+            /**
+            * Sets the method state for cascade shadow mapping.
+            */
+            SimpleShadowMapMethodBase.prototype.iActivateForCascade = function (vo, stage3DProxy) {
+                throw new Error("This shadow method is incompatible with cascade shadows");
+            };
+            return SimpleShadowMapMethodBase;
+        })(away.materials.ShadowMapMethodBase);
+        materials.SimpleShadowMapMethodBase = SimpleShadowMapMethodBase;
+    })(away.materials || (away.materials = {}));
+    var materials = away.materials;
+})(away || (away = {}));
+var away;
+(function (away) {
+    ///<reference path="../../_definitions.ts"/>
+    (function (materials) {
+        /**
+        * DitheredShadowMapMethod provides a softened shadowing technique by bilinearly interpolating shadow comparison
+        * results of neighbouring pixels.
+        */
+        var FilteredShadowMapMethod = (function (_super) {
+            __extends(FilteredShadowMapMethod, _super);
+            /**
+            * Creates a new BasicDiffuseMethod object.
+            *
+            * @param castingLight The light casting the shadow
+            */
+            function FilteredShadowMapMethod(castingLight) {
+                _super.call(this, castingLight);
+            }
+            /**
+            * @inheritDoc
+            */
+            FilteredShadowMapMethod.prototype.iInitConstants = function (vo) {
+                _super.prototype.iInitConstants.call(this, vo);
+
+                var fragmentData = vo.fragmentData;
+                var index = vo.fragmentConstantsIndex;
+                fragmentData[index + 8] = .5;
+                var size = this.castingLight.shadowMapper.depthMapSize;
+                fragmentData[index + 9] = size;
+                fragmentData[index + 10] = 1 / size;
+            };
+
+            /**
+            * @inheritDoc
+            */
+            FilteredShadowMapMethod.prototype._pGetPlanarFragmentCode = function (vo, regCache, targetReg) {
+                var depthMapRegister = regCache.getFreeTextureReg();
+                var decReg = regCache.getFreeFragmentConstant();
+                var dataReg = regCache.getFreeFragmentConstant();
+
+                // TODO: not used
+                dataReg = dataReg;
+                var customDataReg = regCache.getFreeFragmentConstant();
+                var depthCol = regCache.getFreeFragmentVectorTemp();
+                var uvReg;
+                var code = "";
+                vo.fragmentConstantsIndex = decReg.index * 4;
+
+                regCache.addFragmentTempUsages(depthCol, 1);
+
+                uvReg = regCache.getFreeFragmentVectorTemp();
+                regCache.addFragmentTempUsages(uvReg, 1);
+
+                code += "mov " + uvReg + ", " + this._pDepthMapCoordReg + "\n" + "tex " + depthCol + ", " + this._pDepthMapCoordReg + ", " + depthMapRegister + " <2d, nearest, clamp>\n" + "dp4 " + depthCol + ".z, " + depthCol + ", " + decReg + "\n" + "slt " + uvReg + ".z, " + this._pDepthMapCoordReg + ".z, " + depthCol + ".z\n" + "add " + uvReg + ".x, " + this._pDepthMapCoordReg + ".x, " + customDataReg + ".z\n" + "tex " + depthCol + ", " + uvReg + ", " + depthMapRegister + " <2d, nearest, clamp>\n" + "dp4 " + depthCol + ".z, " + depthCol + ", " + decReg + "\n" + "slt " + uvReg + ".w, " + this._pDepthMapCoordReg + ".z, " + depthCol + ".z\n" + "mul " + depthCol + ".x, " + this._pDepthMapCoordReg + ".x, " + customDataReg + ".y\n" + "frc " + depthCol + ".x, " + depthCol + ".x\n" + "sub " + uvReg + ".w, " + uvReg + ".w, " + uvReg + ".z\n" + "mul " + uvReg + ".w, " + uvReg + ".w, " + depthCol + ".x\n" + "add " + targetReg + ".w, " + uvReg + ".z, " + uvReg + ".w\n" + "mov " + uvReg + ".x, " + this._pDepthMapCoordReg + ".x\n" + "add " + uvReg + ".y, " + this._pDepthMapCoordReg + ".y, " + customDataReg + ".z\n" + "tex " + depthCol + ", " + uvReg + ", " + depthMapRegister + " <2d, nearest, clamp>\n" + "dp4 " + depthCol + ".z, " + depthCol + ", " + decReg + "\n" + "slt " + uvReg + ".z, " + this._pDepthMapCoordReg + ".z, " + depthCol + ".z\n" + "add " + uvReg + ".x, " + this._pDepthMapCoordReg + ".x, " + customDataReg + ".z\n" + "tex " + depthCol + ", " + uvReg + ", " + depthMapRegister + " <2d, nearest, clamp>\n" + "dp4 " + depthCol + ".z, " + depthCol + ", " + decReg + "\n" + "slt " + uvReg + ".w, " + this._pDepthMapCoordReg + ".z, " + depthCol + ".z\n" + "mul " + depthCol + ".x, " + this._pDepthMapCoordReg + ".x, " + customDataReg + ".y\n" + "frc " + depthCol + ".x, " + depthCol + ".x\n" + "sub " + uvReg + ".w, " + uvReg + ".w, " + uvReg + ".z\n" + "mul " + uvReg + ".w, " + uvReg + ".w, " + depthCol + ".x\n" + "add " + uvReg + ".w, " + uvReg + ".z, " + uvReg + ".w\n" + "mul " + depthCol + ".x, " + this._pDepthMapCoordReg + ".y, " + customDataReg + ".y\n" + "frc " + depthCol + ".x, " + depthCol + ".x\n" + "sub " + uvReg + ".w, " + uvReg + ".w, " + targetReg + ".w\n" + "mul " + uvReg + ".w, " + uvReg + ".w, " + depthCol + ".x\n" + "add " + targetReg + ".w, " + targetReg + ".w, " + uvReg + ".w\n";
+
+                regCache.removeFragmentTempUsage(depthCol);
+                regCache.removeFragmentTempUsage(uvReg);
+
+                vo.texturesIndex = depthMapRegister.index;
+
+                return code;
+            };
+
+            /**
+            * @inheritDoc
+            */
+            FilteredShadowMapMethod.prototype.iActivateForCascade = function (vo, stage3DProxy) {
+                var size = this.castingLight.shadowMapper.depthMapSize;
+                var index = vo.secondaryFragmentConstantsIndex;
+                var data = vo.fragmentData;
+                data[index] = size;
+                data[index + 1] = 1 / size;
+            };
+
+            /**
+            * @inheritDoc
+            */
+            FilteredShadowMapMethod.prototype._iGetCascadeFragmentCode = function (vo, regCache, decodeRegister, depthTexture, depthProjection, targetRegister) {
+                var code;
+                var dataReg = regCache.getFreeFragmentConstant();
+                vo.secondaryFragmentConstantsIndex = dataReg.index * 4;
+                var temp = regCache.getFreeFragmentVectorTemp();
+                regCache.addFragmentTempUsages(temp, 1);
+                var predicate = regCache.getFreeFragmentVectorTemp();
+                regCache.addFragmentTempUsages(predicate, 1);
+
+                code = "tex " + temp + ", " + depthProjection + ", " + depthTexture + " <2d, nearest, clamp>\n" + "dp4 " + temp + ".z, " + temp + ", " + decodeRegister + "\n" + "slt " + predicate + ".x, " + depthProjection + ".z, " + temp + ".z\n" + "add " + depthProjection + ".x, " + depthProjection + ".x, " + dataReg + ".y\n" + "tex " + temp + ", " + depthProjection + ", " + depthTexture + " <2d, nearest, clamp>\n" + "dp4 " + temp + ".z, " + temp + ", " + decodeRegister + "\n" + "slt " + predicate + ".z, " + depthProjection + ".z, " + temp + ".z\n" + "add " + depthProjection + ".y, " + depthProjection + ".y, " + dataReg + ".y\n" + "tex " + temp + ", " + depthProjection + ", " + depthTexture + " <2d, nearest, clamp>\n" + "dp4 " + temp + ".z, " + temp + ", " + decodeRegister + "\n" + "slt " + predicate + ".w, " + depthProjection + ".z, " + temp + ".z\n" + "sub " + depthProjection + ".x, " + depthProjection + ".x, " + dataReg + ".y\n" + "tex " + temp + ", " + depthProjection + ", " + depthTexture + " <2d, nearest, clamp>\n" + "dp4 " + temp + ".z, " + temp + ", " + decodeRegister + "\n" + "slt " + predicate + ".y, " + depthProjection + ".z, " + temp + ".z\n" + "mul " + temp + ".xy, " + depthProjection + ".xy, " + dataReg + ".x\n" + "frc " + temp + ".xy, " + temp + ".xy\n" + "sub " + depthProjection + ", " + predicate + ".xyzw, " + predicate + ".zwxy\n" + "mul " + depthProjection + ", " + depthProjection + ", " + temp + ".x\n" + "add " + predicate + ".xy, " + predicate + ".xy, " + depthProjection + ".zw\n" + "sub " + predicate + ".y, " + predicate + ".y, " + predicate + ".x\n" + "mul " + predicate + ".y, " + predicate + ".y, " + temp + ".y\n" + "add " + targetRegister + ".w, " + predicate + ".x, " + predicate + ".y\n";
+
+                regCache.removeFragmentTempUsage(temp);
+                regCache.removeFragmentTempUsage(predicate);
+                return code;
+            };
+            return FilteredShadowMapMethod;
+        })(away.materials.SimpleShadowMapMethodBase);
+        materials.FilteredShadowMapMethod = FilteredShadowMapMethod;
+    })(away.materials || (away.materials = {}));
+    var materials = away.materials;
+})(away || (away = {}));
+var away;
+(function (away) {
+    ///<reference path="../../_definitions.ts"/>
+    (function (materials) {
+        /**
+        * HardShadowMapMethod provides the cheapest shadow map method by using a single tap without any filtering.
+        */
+        var HardShadowMapMethod = (function (_super) {
+            __extends(HardShadowMapMethod, _super);
+            /**
+            * Creates a new HardShadowMapMethod object.
+            */
+            function HardShadowMapMethod(castingLight) {
+                _super.call(this, castingLight);
+            }
+            /**
+            * @inheritDoc
+            */
+            HardShadowMapMethod.prototype._pGetPlanarFragmentCode = function (vo, regCache, targetReg) {
+                var depthMapRegister = regCache.getFreeTextureReg();
+                var decReg = regCache.getFreeFragmentConstant();
+
+                // needs to be reserved anyway. DO NOT REMOVE
+                var dataReg = regCache.getFreeFragmentConstant();
+
+                // TODO not used
+                dataReg = dataReg;
+                var depthCol = regCache.getFreeFragmentVectorTemp();
+                var code = "";
+
+                vo.fragmentConstantsIndex = decReg.index * 4;
+                vo.texturesIndex = depthMapRegister.index;
+
+                code += "tex " + depthCol + ", " + this._pDepthMapCoordReg + ", " + depthMapRegister + " <2d, nearest, clamp>\n" + "dp4 " + depthCol + ".z, " + depthCol + ", " + decReg + "\n" + "slt " + targetReg + ".w, " + this._pDepthMapCoordReg + ".z, " + depthCol + ".z\n";
+
+                return code;
+            };
+
+            /**
+            * @inheritDoc
+            */
+            HardShadowMapMethod.prototype._pGetPointFragmentCode = function (vo, regCache, targetReg) {
+                var depthMapRegister = regCache.getFreeTextureReg();
+                var decReg = regCache.getFreeFragmentConstant();
+                var epsReg = regCache.getFreeFragmentConstant();
+                var posReg = regCache.getFreeFragmentConstant();
+                var depthSampleCol = regCache.getFreeFragmentVectorTemp();
+                regCache.addFragmentTempUsages(depthSampleCol, 1);
+                var lightDir = regCache.getFreeFragmentVectorTemp();
+                var code = "";
+
+                vo.fragmentConstantsIndex = decReg.index * 4;
+                vo.texturesIndex = depthMapRegister.index;
+
+                code += "sub " + lightDir + ", " + this._sharedRegisters.globalPositionVarying + ", " + posReg + "\n" + "dp3 " + lightDir + ".w, " + lightDir + ".xyz, " + lightDir + ".xyz\n" + "mul " + lightDir + ".w, " + lightDir + ".w, " + posReg + ".w\n" + "nrm " + lightDir + ".xyz, " + lightDir + ".xyz\n" + "tex " + depthSampleCol + ", " + lightDir + ", " + depthMapRegister + " <cube, nearest, clamp>\n" + "dp4 " + depthSampleCol + ".z, " + depthSampleCol + ", " + decReg + "\n" + "add " + targetReg + ".w, " + lightDir + ".w, " + epsReg + ".x\n" + "slt " + targetReg + ".w, " + targetReg + ".w, " + depthSampleCol + ".z\n";
+
+                regCache.removeFragmentTempUsage(depthSampleCol);
+
+                return code;
+            };
+
+            /**
+            * @inheritDoc
+            */
+            HardShadowMapMethod.prototype._iGetCascadeFragmentCode = function (vo, regCache, decodeRegister, depthTexture, depthProjection, targetRegister) {
+                var temp = regCache.getFreeFragmentVectorTemp();
+                return "tex " + temp + ", " + depthProjection + ", " + depthTexture + " <2d, nearest, clamp>\n" + "dp4 " + temp + ".z, " + temp + ", " + decodeRegister + "\n" + "slt " + targetRegister + ".w, " + depthProjection + ".z, " + temp + ".z\n";
+            };
+
+            /**
+            * @inheritDoc
+            */
+            HardShadowMapMethod.prototype.iActivateForCascade = function (vo, stage3DProxy) {
+            };
+            return HardShadowMapMethod;
+        })(materials.SimpleShadowMapMethodBase);
+        materials.HardShadowMapMethod = HardShadowMapMethod;
+    })(away.materials || (away.materials = {}));
+    var materials = away.materials;
+})(away || (away = {}));
+var away;
+(function (away) {
+    ///<reference path="../../_definitions.ts"/>
+    (function (materials) {
+        /**
+        * SoftShadowMapMethod provides a soft shadowing technique by randomly distributing sample points.
+        */
+        var SoftShadowMapMethod = (function (_super) {
+            __extends(SoftShadowMapMethod, _super);
+            /**
+            * Creates a new BasicDiffuseMethod object.
+            *
+            * @param castingLight The light casting the shadows
+            * @param numSamples The amount of samples to take for dithering. Minimum 1, maximum 32.
+            */
+            function SoftShadowMapMethod(castingLight, numSamples, range) {
+                if (typeof numSamples === "undefined") { numSamples = 5; }
+                if (typeof range === "undefined") { range = 1; }
+                _super.call(this, castingLight);
+                this._range = 1;
+
+                this.numSamples = numSamples;
+                this.range = range;
+            }
+            Object.defineProperty(SoftShadowMapMethod.prototype, "numSamples", {
+                get: /**
+                * The amount of samples to take for dithering. Minimum 1, maximum 32. The actual maximum may depend on the
+                * complexity of the shader.
+                */
+                function () {
+                    return this._numSamples;
+                },
+                set: function (value/*int*/ ) {
+                    this._numSamples = value;
+                    if (this._numSamples < 1)
+                        this._numSamples = 1;
+else if (this._numSamples > 32)
+                        this._numSamples = 32;
+
+                    this._offsets = away.math.PoissonLookup.getDistribution(this._numSamples);
+                    this.iInvalidateShaderProgram();
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+
+            Object.defineProperty(SoftShadowMapMethod.prototype, "range", {
+                get: /**
+                * The range in the shadow map in which to distribute the samples.
+                */
+                function () {
+                    return this._range;
+                },
+                set: function (value) {
+                    this._range = value;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+
+            /**
+            * @inheritDoc
+            */
+            SoftShadowMapMethod.prototype.iInitConstants = function (vo) {
+                _super.prototype.iInitConstants.call(this, vo);
+
+                vo.fragmentData[vo.fragmentConstantsIndex + 8] = 1 / this._numSamples;
+                vo.fragmentData[vo.fragmentConstantsIndex + 9] = 0;
+            };
+
+            /**
+            * @inheritDoc
+            */
+            SoftShadowMapMethod.prototype.iActivate = function (vo, stage3DProxy) {
+                _super.prototype.iActivate.call(this, vo, stage3DProxy);
+                var texRange = .5 * this._range / this._pCastingLight.shadowMapper.depthMapSize;
+                var data = vo.fragmentData;
+                var index = vo.fragmentConstantsIndex + 10;
+                var len = this._numSamples << 1;
+
+                for (var i = 0; i < len; ++i)
+                    data[index + i] = this._offsets[i] * texRange;
+            };
+
+            /**
+            * @inheritDoc
+            */
+            SoftShadowMapMethod.prototype._pGetPlanarFragmentCode = function (vo, regCache, targetReg) {
+                // todo: move some things to super
+                var depthMapRegister = regCache.getFreeTextureReg();
+                var decReg = regCache.getFreeFragmentConstant();
+                var dataReg = regCache.getFreeFragmentConstant();
+                var customDataReg = regCache.getFreeFragmentConstant();
+
+                vo.fragmentConstantsIndex = decReg.index * 4;
+                vo.texturesIndex = depthMapRegister.index;
+
+                return this.getSampleCode(regCache, depthMapRegister, decReg, targetReg, customDataReg);
+            };
+
+            /**
+            * Adds the code for another tap to the shader code.
+            * @param uv The uv register for the tap.
+            * @param texture The texture register containing the depth map.
+            * @param decode The register containing the depth map decoding data.
+            * @param target The target register to add the tap comparison result.
+            * @param regCache The register cache managing the registers.
+            * @return
+            */
+            SoftShadowMapMethod.prototype.addSample = function (uv, texture, decode, target, regCache) {
+                var temp = regCache.getFreeFragmentVectorTemp();
+                return "tex " + temp + ", " + uv + ", " + texture + " <2d,nearest,clamp>\n" + "dp4 " + temp + ".z, " + temp + ", " + decode + "\n" + "slt " + uv + ".w, " + this._pDepthMapCoordReg + ".z, " + temp + ".z\n" + "add " + target + ".w, " + target + ".w, " + uv + ".w\n";
+            };
+
+            /**
+            * @inheritDoc
+            */
+            SoftShadowMapMethod.prototype.iActivateForCascade = function (vo, stage3DProxy) {
+                _super.prototype.iActivate.call(this, vo, stage3DProxy);
+                var texRange = this._range / this._pCastingLight.shadowMapper.depthMapSize;
+                var data = vo.fragmentData;
+                var index = vo.secondaryFragmentConstantsIndex;
+                var len = this._numSamples << 1;
+                data[index] = 1 / this._numSamples;
+                data[index + 1] = 0;
+                index += 2;
+                for (var i = 0; i < len; ++i)
+                    data[index + i] = this._offsets[i] * texRange;
+
+                if (len % 4 == 0) {
+                    data[index + len] = 0;
+                    data[index + len + 1] = 0;
+                }
+            };
+
+            /**
+            * @inheritDoc
+            */
+            SoftShadowMapMethod.prototype._iGetCascadeFragmentCode = function (vo, regCache, decodeRegister, depthTexture, depthProjection, targetRegister) {
+                this._pDepthMapCoordReg = depthProjection;
+
+                var dataReg = regCache.getFreeFragmentConstant();
+                vo.secondaryFragmentConstantsIndex = dataReg.index * 4;
+
+                return this.getSampleCode(regCache, depthTexture, decodeRegister, targetRegister, dataReg);
+            };
+
+            /**
+            * Get the actual shader code for shadow mapping
+            * @param regCache The register cache managing the registers.
+            * @param depthTexture The texture register containing the depth map.
+            * @param decodeRegister The register containing the depth map decoding data.
+            * @param targetReg The target register to add the shadow coverage.
+            * @param dataReg The register containing additional data.
+            */
+            SoftShadowMapMethod.prototype.getSampleCode = function (regCache, depthTexture, decodeRegister, targetRegister, dataReg) {
+                var uvReg;
+                var code;
+                var offsets = new Array(dataReg + ".zw");
+                uvReg = regCache.getFreeFragmentVectorTemp();
+                regCache.addFragmentTempUsages(uvReg, 1);
+
+                var temp = regCache.getFreeFragmentVectorTemp();
+
+                var numRegs = this._numSamples >> 1;
+                for (var i = 0; i < numRegs; ++i) {
+                    var reg = regCache.getFreeFragmentConstant();
+                    offsets.push(reg + ".xy");
+                    offsets.push(reg + ".zw");
+                }
+
+                for (i = 0; i < this._numSamples; ++i) {
+                    if (i == 0) {
+                        code = "add " + uvReg + ", " + this._pDepthMapCoordReg + ", " + dataReg + ".zwyy\n";
+                        code += "tex " + temp + ", " + uvReg + ", " + depthTexture + " <2d,nearest,clamp>\n" + "dp4 " + temp + ".z, " + temp + ", " + decodeRegister + "\n" + "slt " + targetRegister + ".w, " + this._pDepthMapCoordReg + ".z, " + temp + ".z\n";
+                    } else {
+                        code += "add " + uvReg + ".xy, " + this._pDepthMapCoordReg + ".xy, " + offsets[i] + "\n";
+                        code += this.addSample(uvReg, depthTexture, decodeRegister, targetRegister, regCache);
+                    }
+                }
+
+                regCache.removeFragmentTempUsage(uvReg);
+                code += "mul " + targetRegister + ".w, " + targetRegister + ".w, " + dataReg + ".x\n";
+                return code;
+            };
+            return SoftShadowMapMethod;
+        })(materials.SimpleShadowMapMethodBase);
+        materials.SoftShadowMapMethod = SoftShadowMapMethod;
+    })(away.materials || (away.materials = {}));
+    var materials = away.materials;
+})(away || (away = {}));
+var away;
+(function (away) {
+    ///<reference path="../../_definitions.ts"/>
+    (function (materials) {
+        /**
+        * DitheredShadowMapMethod provides a soft shadowing technique by randomly distributing sample points differently for each fragment.
+        */
+        var DitheredShadowMapMethod = (function (_super) {
+            __extends(DitheredShadowMapMethod, _super);
+            /**
+            * Creates a new DitheredShadowMapMethod object.
+            * @param castingLight The light casting the shadows
+            * @param numSamples The amount of samples to take for dithering. Minimum 1, maximum 24.
+            */
+            function DitheredShadowMapMethod(castingLight, numSamples, range) {
+                if (typeof numSamples === "undefined") { numSamples = 4; }
+                if (typeof range === "undefined") { range = 1; }
+                _super.call(this, castingLight);
+
+                this._depthMapSize = this._pCastingLight.shadowMapper.depthMapSize;
+
+                this.numSamples = numSamples;
+                this.range = range;
+
+                ++away.materials.DitheredShadowMapMethod._grainUsages;
+
+                if (!away.materials.DitheredShadowMapMethod._grainTexture)
+                    this.initGrainTexture();
+            }
+            Object.defineProperty(DitheredShadowMapMethod.prototype, "numSamples", {
+                get: /**
+                * The amount of samples to take for dithering. Minimum 1, maximum 24. The actual maximum may depend on the
+                * complexity of the shader.
+                */
+                function () {
+                    return this._numSamples;
+                },
+                set: function (value/*int*/ ) {
+                    this._numSamples = value;
+                    if (this._numSamples < 1)
+                        this._numSamples = 1;
+else if (this._numSamples > 24)
+                        this._numSamples = 24;
+                    this.iInvalidateShaderProgram();
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+
+            /**
+            * @inheritDoc
+            */
+            DitheredShadowMapMethod.prototype.iInitVO = function (vo) {
+                _super.prototype.iInitVO.call(this, vo);
+                vo.needsProjection = true;
+            };
+
+            /**
+            * @inheritDoc
+            */
+            DitheredShadowMapMethod.prototype.iInitConstants = function (vo) {
+                _super.prototype.iInitConstants.call(this, vo);
+
+                var fragmentData = vo.fragmentData;
+                var index = vo.fragmentConstantsIndex;
+                fragmentData[index + 8] = 1 / this._numSamples;
+            };
+
+            Object.defineProperty(DitheredShadowMapMethod.prototype, "range", {
+                get: /**
+                * The range in the shadow map in which to distribute the samples.
+                */
+                function () {
+                    return this._range * 2;
+                },
+                set: function (value) {
+                    this._range = value / 2;
+                },
+                enumerable: true,
+                configurable: true
+            });
+
+
+            /**
+            * Creates a texture containing the dithering noise texture.
+            */
+            DitheredShadowMapMethod.prototype.initGrainTexture = function () {
+                away.materials.DitheredShadowMapMethod._grainBitmapData = new away.display.BitmapData(64, 64, false);
+                var vec = new Array();
+                var len = 4096;
+                var step = 1 / (this._depthMapSize * this._range);
+                var r, g;
+
+                for (var i = 0; i < len; ++i) {
+                    r = 2 * (Math.random() - .5);
+                    g = 2 * (Math.random() - .5);
+                    if (r < 0)
+                        r -= step;
+else
+                        r += step;
+                    if (g < 0)
+                        g -= step;
+else
+                        g += step;
+                    if (r > 1)
+                        r = 1;
+else if (r < -1)
+                        r = -1;
+                    if (g > 1)
+                        g = 1;
+else if (g < -1)
+                        g = -1;
+                    vec[i] = (Math.floor((r * .5 + .5) * 0xff) << 16) | (Math.floor((g * .5 + .5) * 0xff) << 8);
+                }
+
+                away.materials.DitheredShadowMapMethod._grainBitmapData.setVector(away.materials.DitheredShadowMapMethod._grainBitmapData.rect, vec);
+                away.materials.DitheredShadowMapMethod._grainTexture = new away.textures.BitmapTexture(away.materials.DitheredShadowMapMethod._grainBitmapData);
+            };
+
+            /**
+            * @inheritDoc
+            */
+            DitheredShadowMapMethod.prototype.dispose = function () {
+                if (--away.materials.DitheredShadowMapMethod._grainUsages == 0) {
+                    away.materials.DitheredShadowMapMethod._grainTexture.dispose();
+                    away.materials.DitheredShadowMapMethod._grainBitmapData.dispose();
+                    away.materials.DitheredShadowMapMethod._grainTexture = null;
+                }
+            };
+
+            /**
+            * @inheritDoc
+            */
+            DitheredShadowMapMethod.prototype.iActivate = function (vo, stage3DProxy) {
+                _super.prototype.iActivate.call(this, vo, stage3DProxy);
+                var data = vo.fragmentData;
+                var index = vo.fragmentConstantsIndex;
+                data[index + 9] = (stage3DProxy.width - 1) / 63;
+                data[index + 10] = (stage3DProxy.height - 1) / 63;
+                data[index + 11] = 2 * this._range / this._depthMapSize;
+                stage3DProxy._iContext3D.setTextureAt(vo.texturesIndex + 1, away.materials.DitheredShadowMapMethod._grainTexture.getTextureForStage3D(stage3DProxy));
+            };
+
+            /**
+            * @inheritDoc
+            */
+            DitheredShadowMapMethod.prototype._pGetPlanarFragmentCode = function (vo, regCache, targetReg) {
+                var depthMapRegister = regCache.getFreeTextureReg();
+                var decReg = regCache.getFreeFragmentConstant();
+                var dataReg = regCache.getFreeFragmentConstant();
+                var customDataReg = regCache.getFreeFragmentConstant();
+
+                vo.fragmentConstantsIndex = decReg.index * 4;
+                vo.texturesIndex = depthMapRegister.index;
+
+                return this.getSampleCode(regCache, customDataReg, depthMapRegister, decReg, targetReg);
+            };
+
+            /**
+            * Get the actual shader code for shadow mapping
+            * @param regCache The register cache managing the registers.
+            * @param depthMapRegister The texture register containing the depth map.
+            * @param decReg The register containing the depth map decoding data.
+            * @param targetReg The target register to add the shadow coverage.
+            */
+            DitheredShadowMapMethod.prototype.getSampleCode = function (regCache, customDataReg, depthMapRegister, decReg, targetReg) {
+                var code = "";
+                var grainRegister = regCache.getFreeTextureReg();
+                var uvReg = regCache.getFreeFragmentVectorTemp();
+                var numSamples = this._numSamples;
+                regCache.addFragmentTempUsages(uvReg, 1);
+
+                var temp = regCache.getFreeFragmentVectorTemp();
+
+                var projectionReg = this._sharedRegisters.projectionFragment;
+
+                code += "div " + uvReg + ", " + projectionReg + ", " + projectionReg + ".w\n" + "mul " + uvReg + ".xy, " + uvReg + ".xy, " + customDataReg + ".yz\n";
+
+                while (numSamples > 0) {
+                    if (numSamples == this._numSamples)
+                        code += "tex " + uvReg + ", " + uvReg + ", " + grainRegister + " <2d,nearest,repeat,mipnone>\n";
+else
+                        code += "tex " + uvReg + ", " + uvReg + ".zwxy, " + grainRegister + " <2d,nearest,repeat,mipnone>\n";
+
+                    // keep grain in uvReg.zw
+                    code += "sub " + uvReg + ".zw, " + uvReg + ".xy, fc0.xx\n" + "mul " + uvReg + ".zw, " + uvReg + ".zw, " + customDataReg + ".w\n";
+
+                    if (numSamples == this._numSamples) {
+                        // first sample
+                        code += "add " + uvReg + ".xy, " + uvReg + ".zw, " + this._pDepthMapCoordReg + ".xy\n" + "tex " + temp + ", " + uvReg + ", " + depthMapRegister + " <2d,nearest,clamp,mipnone>\n" + "dp4 " + temp + ".z, " + temp + ", " + decReg + "\n" + "slt " + targetReg + ".w, " + this._pDepthMapCoordReg + ".z, " + temp + ".z\n";
+                    } else
+                        code += this.addSample(uvReg, depthMapRegister, decReg, targetReg, regCache);
+
+                    if (numSamples > 4) {
+                        code += "add " + uvReg + ".xy, " + uvReg + ".xy, " + uvReg + ".zw\n" + this.addSample(uvReg, depthMapRegister, decReg, targetReg, regCache);
+                    }
+
+                    if (numSamples > 1) {
+                        code += "sub " + uvReg + ".xy, " + this._pDepthMapCoordReg + ".xy, " + uvReg + ".zw\n" + this.addSample(uvReg, depthMapRegister, decReg, targetReg, regCache);
+                    }
+
+                    if (numSamples > 5) {
+                        code += "sub " + uvReg + ".xy, " + uvReg + ".xy, " + uvReg + ".zw\n" + this.addSample(uvReg, depthMapRegister, decReg, targetReg, regCache);
+                    }
+
+                    if (numSamples > 2) {
+                        code += "neg " + uvReg + ".w, " + uvReg + ".w\n";
+
+                        code += "add " + uvReg + ".xy, " + uvReg + ".wz, " + this._pDepthMapCoordReg + ".xy\n" + this.addSample(uvReg, depthMapRegister, decReg, targetReg, regCache);
+                    }
+
+                    if (numSamples > 6) {
+                        code += "add " + uvReg + ".xy, " + uvReg + ".xy, " + uvReg + ".wz\n" + this.addSample(uvReg, depthMapRegister, decReg, targetReg, regCache);
+                    }
+
+                    if (numSamples > 3) {
+                        code += "sub " + uvReg + ".xy, " + this._pDepthMapCoordReg + ".xy, " + uvReg + ".wz\n" + this.addSample(uvReg, depthMapRegister, decReg, targetReg, regCache);
+                    }
+
+                    if (numSamples > 7) {
+                        code += "sub " + uvReg + ".xy, " + uvReg + ".xy, " + uvReg + ".wz\n" + this.addSample(uvReg, depthMapRegister, decReg, targetReg, regCache);
+                    }
+
+                    numSamples -= 8;
+                }
+
+                regCache.removeFragmentTempUsage(uvReg);
+                code += "mul " + targetReg + ".w, " + targetReg + ".w, " + customDataReg + ".x\n";
+                return code;
+            };
+
+            /**
+            * Adds the code for another tap to the shader code.
+            * @param uvReg The uv register for the tap.
+            * @param depthMapRegister The texture register containing the depth map.
+            * @param decReg The register containing the depth map decoding data.
+            * @param targetReg The target register to add the tap comparison result.
+            * @param regCache The register cache managing the registers.
+            * @return
+            */
+            DitheredShadowMapMethod.prototype.addSample = function (uvReg, depthMapRegister, decReg, targetReg, regCache) {
+                var temp = regCache.getFreeFragmentVectorTemp();
+                return "tex " + temp + ", " + uvReg + ", " + depthMapRegister + " <2d,nearest,clamp,mipnone>\n" + "dp4 " + temp + ".z, " + temp + ", " + decReg + "\n" + "slt " + temp + ".z, " + this._pDepthMapCoordReg + ".z, " + temp + ".z\n" + "add " + targetReg + ".w, " + targetReg + ".w, " + temp + ".z\n";
+            };
+
+            /**
+            * @inheritDoc
+            */
+            DitheredShadowMapMethod.prototype.iActivateForCascade = function (vo, stage3DProxy) {
+                var data = vo.fragmentData;
+                var index = vo.secondaryFragmentConstantsIndex;
+                data[index] = 1 / this._numSamples;
+                data[index + 1] = (stage3DProxy.width - 1) / 63;
+                data[index + 2] = (stage3DProxy.height - 1) / 63;
+                data[index + 3] = 2 * this._range / this._depthMapSize;
+                stage3DProxy._iContext3D.setTextureAt(vo.texturesIndex + 1, away.materials.DitheredShadowMapMethod._grainTexture.getTextureForStage3D(stage3DProxy));
+            };
+
+            /**
+            * @inheritDoc
+            */
+            DitheredShadowMapMethod.prototype._iGetCascadeFragmentCode = function (vo, regCache, decodeRegister, depthTexture, depthProjection, targetRegister) {
+                this._pDepthMapCoordReg = depthProjection;
+
+                var dataReg = regCache.getFreeFragmentConstant();
+                vo.secondaryFragmentConstantsIndex = dataReg.index * 4;
+
+                return this.getSampleCode(regCache, dataReg, depthTexture, decodeRegister, targetRegister);
+            };
+            return DitheredShadowMapMethod;
+        })(materials.SimpleShadowMapMethodBase);
+        materials.DitheredShadowMapMethod = DitheredShadowMapMethod;
     })(away.materials || (away.materials = {}));
     var materials = away.materials;
 })(away || (away = {}));
@@ -44219,333 +48329,6 @@ var away;
 var away;
 (function (away) {
     ///<reference path="../../_definitions.ts"/>
-    (function (render) {
-        var RenderBase = (function () {
-            function RenderBase(renderToTexture) {
-                if (typeof renderToTexture === "undefined") { renderToTexture = false; }
-                this._pBackgroundR = 0;
-                this._pBackgroundG = 0;
-                this._pBackgroundB = 0;
-                this._pBackgroundAlpha = 1;
-                this._pShareContext = false;
-                this._pTextureRatioX = 1;
-                this._pTextureRatioY = 1;
-                this._clearOnRender = true;
-                this._pRttViewProjectionMatrix = new away.geom.Matrix3D();
-                this._pRenderableSorter = new away.sort.RenderableMergeSort();
-                this._pRenderToTexture = renderToTexture;
-            }
-            //@arcane
-            RenderBase.prototype.iCreateEntityCollector = function () {
-                return new away.traverse.EntityCollector();
-            };
-
-            Object.defineProperty(RenderBase.prototype, "iViewWidth", {
-                get: //@arcane
-                function () {
-                    return this._pViewWidth;
-                },
-                set: //@arcane
-                function (value) {
-                    this._pViewWidth = value;
-                },
-                enumerable: true,
-                configurable: true
-            });
-
-
-            Object.defineProperty(RenderBase.prototype, "iViewHeight", {
-                get: //@arcane
-                function () {
-                    return this._pViewHeight;
-                },
-                set: //@arcane
-                function (value) {
-                    this._pViewHeight = value;
-                },
-                enumerable: true,
-                configurable: true
-            });
-
-
-            Object.defineProperty(RenderBase.prototype, "iRenderToTexture", {
-                get: //@arcane
-                function () {
-                    return this._pRenderToTexture;
-                },
-                enumerable: true,
-                configurable: true
-            });
-
-            Object.defineProperty(RenderBase.prototype, "renderableSorter", {
-                get: function () {
-                    return this._pRenderableSorter;
-                },
-                set: function (value) {
-                    this._pRenderableSorter = value;
-                },
-                enumerable: true,
-                configurable: true
-            });
-
-
-            Object.defineProperty(RenderBase.prototype, "iClearOnRender", {
-                get: //@arcane
-                function () {
-                    return this._clearOnRender;
-                },
-                set: //@arcane
-                function (value) {
-                    this._clearOnRender = value;
-                },
-                enumerable: true,
-                configurable: true
-            });
-
-
-            Object.defineProperty(RenderBase.prototype, "iBackgroundR", {
-                get: //@arcane
-                function () {
-                    return this._pBackgroundR;
-                },
-                set: //@arcane
-                function (value) {
-                    this._pBackgroundR = value;
-                },
-                enumerable: true,
-                configurable: true
-            });
-
-
-            Object.defineProperty(RenderBase.prototype, "iBackgroundG", {
-                get: //@arcane
-                function () {
-                    return this._pBackgroundG;
-                },
-                set: //@arcane
-                function (value) {
-                    this._pBackgroundG = value;
-                },
-                enumerable: true,
-                configurable: true
-            });
-
-
-            Object.defineProperty(RenderBase.prototype, "iBackgroundB", {
-                get: //@arcane
-                function () {
-                    return this._pBackgroundB;
-                },
-                set: //@arcane
-                function (value) {
-                    this._pBackgroundB = value;
-                },
-                enumerable: true,
-                configurable: true
-            });
-
-
-            Object.defineProperty(RenderBase.prototype, "iStage3DProxy", {
-                get: //@arcane
-                function () {
-                    return this._pStage3DProxy;
-                },
-                set: //@arcane
-                function (value) {
-                    if (value == this._pStage3DProxy) {
-                        return;
-                    }
-                    if (!value) {
-                        if (this._pStage3DProxy) {
-                            this._pStage3DProxy.removeEventListener(away.events.Stage3DEvent.CONTEXT3D_CREATED, this.onContextUpdate, this);
-                            this._pStage3DProxy.removeEventListener(away.events.Stage3DEvent.CONTEXT3D_RECREATED, this.onContextUpdate, this);
-                        }
-                        this._pStage3DProxy = null;
-                        this._pContext = null;
-                        return;
-                    }
-
-                    this._pStage3DProxy = value;
-                    this._pStage3DProxy.addEventListener(away.events.Stage3DEvent.CONTEXT3D_CREATED, this.onContextUpdate, this);
-                    this._pStage3DProxy.addEventListener(away.events.Stage3DEvent.CONTEXT3D_RECREATED, this.onContextUpdate, this);
-
-                    if (value.context3D) {
-                        this._pContext = value.context3D;
-                    }
-                },
-                enumerable: true,
-                configurable: true
-            });
-
-
-            Object.defineProperty(RenderBase.prototype, "iShareContext", {
-                get: //@arcane
-                function () {
-                    return this._pShareContext;
-                },
-                set: //@arcane
-                function (value) {
-                    this._pShareContext = value;
-                },
-                enumerable: true,
-                configurable: true
-            });
-
-
-            //@arcane
-            RenderBase.prototype.iDispose = function () {
-                this._pStage3DProxy = null;
-                /*
-                if( this._pBackgroundImageRenderer )
-                {
-                this._pBackgroundImageRenderer.dispose();
-                this._pBackgroundImageRenderer = null;
-                }*/
-            };
-
-            //@arcane
-            RenderBase.prototype.iRender = function (entityCollector, target, scissorRect, surfaceSelector) {
-                if (typeof target === "undefined") { target = null; }
-                if (typeof scissorRect === "undefined") { scissorRect = null; }
-                if (typeof surfaceSelector === "undefined") { surfaceSelector = 0; }
-                if (!this._pStage3DProxy || !this._pContext) {
-                    return;
-                }
-
-                this._pRttViewProjectionMatrix.copyFrom(entityCollector.camera.viewProjection);
-                this._pRttViewProjectionMatrix.appendScale(this._pTextureRatioX, this._pTextureRatioY, 1);
-
-                this.pExecuteRender(entityCollector, target, scissorRect, surfaceSelector);
-
-                for (var i = 0; i < 8; ++i) {
-                    this._pContext.setVertexBufferAt(i, null);
-                    this._pContext.setTextureAt(i, null);
-                }
-            };
-
-            RenderBase.prototype.pExecuteRender = function (entityCollector, target, scissorRect, surfaceSelector) {
-                if (typeof target === "undefined") { target = null; }
-                if (typeof scissorRect === "undefined") { scissorRect = null; }
-                if (typeof surfaceSelector === "undefined") { surfaceSelector = 0; }
-                this._pRenderTarget = target;
-                this._pRenderTargetSurface = surfaceSelector;
-
-                if (this._pRenderableSorter) {
-                    this._pRenderableSorter.sort(entityCollector);
-                }
-                if (this._pRenderToTexture) {
-                    this.pExecuteRenderToTexturePass(entityCollector);
-                }
-
-                this._pStage3DProxy.setRenderTarget(target, true, surfaceSelector);
-
-                if ((target || !this._pShareContext) && this._clearOnRender) {
-                    this._pContext.clear(this._pBackgroundR, this._pBackgroundG, this._pBackgroundB, this._pBackgroundAlpha, 1, 0);
-                }
-                this._pContext.setDepthTest(false, away.display3D.Context3DCompareMode.ALWAYS);
-                this._pStage3DProxy.scissorRect = scissorRect;
-
-                /*
-                if( this._backgroundImageRenderer )
-                {
-                this._backgroundImageRenderer.render();
-                }*/
-                this.pDraw(entityCollector, target);
-
-                //line required for correct rendering when using away3d with starling. DO NOT REMOVE UNLESS STARLING INTEGRATION IS RETESTED!
-                this._pContext.setDepthTest(false, away.display3D.Context3DCompareMode.LESS_EQUAL);
-
-                if (!this._pShareContext) {
-                    if (this._snapshotRequired && this._snapshotBitmapData) {
-                        this._pContext.drawToBitmapData(this._snapshotBitmapData);
-                        this._snapshotRequired = false;
-                    }
-                }
-                this._pStage3DProxy.scissorRect = null;
-            };
-
-            RenderBase.prototype.queueSnapshot = function (bmd) {
-                this._snapshotRequired = true;
-                this._snapshotBitmapData = bmd;
-            };
-
-            RenderBase.prototype.pExecuteRenderToTexturePass = function (entityCollector) {
-                throw new away.errors.AbstractMethodError();
-            };
-
-            RenderBase.prototype.pDraw = function (entityCollector, target) {
-                throw new away.errors.AbstractMethodError();
-            };
-
-            RenderBase.prototype.onContextUpdate = function (event) {
-                this._pContext = this._pStage3DProxy.context3D;
-            };
-
-            Object.defineProperty(RenderBase.prototype, "iBackgroundAlpha", {
-                get: //@arcane
-                function () {
-                    return this._pBackgroundAlpha;
-                },
-                set: //@arcane
-                function (value) {
-                    this._pBackgroundAlpha = value;
-                },
-                enumerable: true,
-                configurable: true
-            });
-
-
-            Object.defineProperty(RenderBase.prototype, "iBackground", {
-                get: //@arcane
-                function () {
-                    return this._background;
-                },
-                enumerable: true,
-                configurable: true
-            });
-
-            Object.defineProperty(RenderBase.prototype, "antiAlias", {
-                get: //@arcane
-                /*
-                public set iBackground( value:away.textures.Texture2DBase )
-                {
-                if( this._backgroundImageRenderer && !value )
-                {
-                this._backgroundImageRenderer.dispose();
-                this._backgroundImageRenderer = null;
-                }
-                
-                if( !this._backgroundImageRenderer && value )
-                {
-                this._backgroundImageRenderer = new away.render.BackgroundImageRenderer( this._stage3DProxy );
-                }
-                this._background = value;
-                
-                if( this._backgroundImageRenderer )
-                {
-                this._backgroundImageRenderer.texture = value;
-                }
-                }*/
-                /*
-                public get backgroundImageRenderer():away.render.BackgroundImageRenderer
-                {
-                return this._backgroundImageRenderer;
-                }*/
-                function () {
-                    return this._pAntiAlias;
-                },
-                enumerable: true,
-                configurable: true
-            });
-            return RenderBase;
-        })();
-        render.RenderBase = RenderBase;
-    })(away.render || (away.render = {}));
-    var render = away.render;
-})(away || (away = {}));
-var away;
-(function (away) {
-    ///<reference path="../../_definitions.ts"/>
     (function (sort) {
         var RenderableMergeSort = (function () {
             function RenderableMergeSort() {
@@ -44935,7 +48718,7 @@ var away;
                 if (typeof target === "undefined") { target = null; }
                 if (typeof scissorRect === "undefined") { scissorRect = null; }
                 if (typeof surfaceSelector === "undefined") { surfaceSelector = 0; }
-                if (!this._pStage3DProxy || !this._pContext) {
+                if (!this._pStage3DProxy || !this._pContext || !entityCollector.entityHead) {
                     return;
                 }
 
@@ -44943,6 +48726,10 @@ var away;
                 this._pRttViewProjectionMatrix.appendScale(this._textureRatioX, this._textureRatioY, 1);
 
                 this.pExecuteRender(entityCollector, target, scissorRect, surfaceSelector);
+
+                if (target) {
+                    (target).generateMipmaps();
+                }
 
                 for (var i = 0; i < 8; ++i) {
                     this._pContext.setVertexBufferAt(i, null);
@@ -44987,9 +48774,6 @@ var away;
                 _backgroundImageRenderer.render();
                 */
                 this.pDraw(entityCollector, target);
-
-                //line required for correct rendering when using away3d with starling. DO NOT REMOVE UNLESS STARLING INTEGRATION IS RETESTED!
-                this._pContext.setDepthTest(false, away.display3D.Context3DCompareMode.LESS_EQUAL);
 
                 if (!this._shareContext) {
                     if (this._snapshotRequired && this._snapshotBitmapData) {
@@ -45150,27 +48934,6 @@ var away;
                 configurable: true
             });
 
-
-            Object.defineProperty(DepthRenderer.prototype, "iBackgroundR", {
-                set: function (value) {
-                },
-                enumerable: true,
-                configurable: true
-            });
-
-            Object.defineProperty(DepthRenderer.prototype, "iBackgroundG", {
-                set: function (value) {
-                },
-                enumerable: true,
-                configurable: true
-            });
-
-            Object.defineProperty(DepthRenderer.prototype, "iBackgroundB", {
-                set: function (value) {
-                },
-                enumerable: true,
-                configurable: true
-            });
 
             DepthRenderer.prototype.iRenderCascades = function (entityCollector, target, numCascades, scissorRects, cameras) {
                 this._pRenderTarget = target;
@@ -46599,7 +50362,7 @@ var away;
 
             ByteArray.prototype.readInt = function () {
                 var data = new DataView(this.arraybytes);
-                var int = data.getInt32(this.position);
+                var int = data.getInt32(this.position, true);
 
                 this.position += 4;
 
@@ -46608,7 +50371,7 @@ var away;
 
             ByteArray.prototype.readShort = function () {
                 var data = new DataView(this.arraybytes);
-                var short = data.getInt16(this.position);
+                var short = data.getInt16(this.position, true);
 
                 this.position += 2;
                 return short;
@@ -48054,1309 +51817,109 @@ var away;
     })(away.events.EventDispatcher);
     away.Away3D = Away3D;
 })(away || (away = {}));
-var tests;
-(function (tests) {
-    (function (unit) {
-        (function (tsUnit) {
-            var Test = (function () {
-                function Test() {
-                    this.tests = [];
-                    this.testClass = new TestClass();
-                }
-                Test.prototype.addTestClass = function (testClass, name) {
-                    if (typeof name === "undefined") { name = 'Tests'; }
-                    this.tests.push(new TestDefintion(testClass, name));
-                };
-
-                Test.prototype.isReservedFunctionName = function (functionName) {
-                    for (var prop in this.testClass) {
-                        if (prop === functionName) {
-                            return true;
-                        }
-                    }
-                    return false;
-                };
-
-                Test.prototype.run = function () {
-                    var testContext = new TestContext();
-                    var testResult = new TestResult();
-
-                    for (var i = 0; i < this.tests.length; ++i) {
-                        var testClass = this.tests[i].testClass;
-                        var testName = this.tests[i].name;
-                        for (var prop in testClass) {
-                            if (!this.isReservedFunctionName(prop)) {
-                                if (typeof testClass[prop] === 'function') {
-                                    if (typeof testClass['setUp'] === 'function') {
-                                        testClass['setUp']();
-                                    }
-                                    try  {
-                                        testClass[prop](testContext);
-                                        testResult.passes.push(new TestDescription(testName, prop, 'OK'));
-                                    } catch (err) {
-                                        testResult.errors.push(new TestDescription(testName, prop, err));
-                                    }
-                                    if (typeof testClass['tearDown'] === 'function') {
-                                        testClass['tearDown']();
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    return testResult;
-                };
-
-                Test.prototype.showResults = function (target, result) {
-                    var template = '<article>' + '<h1>' + this.getTestResult(result) + '</h1>' + '<p>' + this.getTestSummary(result) + '</p>' + '<section id="tsFail">' + '<h2>Errors</h2>' + '<ul class="bad">' + this.getTestResultList(result.errors) + '</ul>' + '</section>' + '<section id="tsOkay">' + '<h2>Passing Tests</h2>' + '<ul class="good">' + this.getTestResultList(result.passes) + '</ul>' + '</section>' + '</article>';
-
-                    target.innerHTML = template;
-                };
-
-                Test.prototype.getTestResult = function (result) {
-                    return result.errors.length === 0 ? 'Test Passed' : 'Test Failed';
-                };
-
-                Test.prototype.getTestSummary = function (result) {
-                    return 'Total tests: <span id="tsUnitTotalCout">' + (result.passes.length + result.errors.length).toString() + '</span>. ' + 'Passed tests: <span id="tsUnitPassCount" class="good">' + result.passes.length + '</span>. ' + 'Failed tests: <span id="tsUnitFailCount" class="bad">' + result.errors.length + '</span>.';
-                };
-
-                Test.prototype.getTestResultList = function (testResults) {
-                    var list = '';
-                    var group = '';
-                    var isFirst = true;
-                    for (var i = 0; i < testResults.length; ++i) {
-                        var result = testResults[i];
-                        if (result.testName !== group) {
-                            group = result.testName;
-                            if (isFirst) {
-                                isFirst = false;
-                            } else {
-                                list += '</li></ul>';
-                            }
-                            list += '<li>' + result.testName + '<ul>';
-                        }
-                        list += '<li>' + result.funcName + '(): ' + this.encodeHtmlEntities(result.message) + '</li>';
-                    }
-                    return list + '</ul>';
-                };
-
-                Test.prototype.encodeHtmlEntities = function (input) {
-                    var entitiesToReplace = { '&': '&amp;', '<': '&lt;', '>': '&gt;' };
-                    input.replace(/[&<>]/g, function (entity) {
-                        return entitiesToReplace[entity] || entity;
-                    });
-                    return input;
-                };
-                return Test;
-            })();
-            tsUnit.Test = Test;
-
-            var TestContext = (function () {
-                function TestContext() {
-                }
-                TestContext.prototype.setUp = function () {
-                };
-
-                TestContext.prototype.tearDown = function () {
-                };
-
-                TestContext.prototype.areIdentical = function (a, b) {
-                    if (a !== b) {
-                        throw 'areIdentical failed when passed ' + '{' + (typeof a) + '} "' + a + '" and ' + '{' + (typeof b) + '} "' + b + '"';
-                    }
-                };
-
-                TestContext.prototype.areNotIdentical = function (a, b) {
-                    if (a === b) {
-                        throw 'areNotIdentical failed when passed ' + '{' + (typeof a) + '} "' + a + '" and ' + '{' + (typeof b) + '} "' + b + '"';
-                    }
-                };
-
-                TestContext.prototype.isTrue = function (a) {
-                    if (!a) {
-                        throw 'isTrue failed when passed ' + '{' + (typeof a) + '} "' + a + '"';
-                    }
-                };
-
-                TestContext.prototype.isFalse = function (a) {
-                    if (a) {
-                        throw 'isFalse failed when passed ' + '{' + (typeof a) + '} "' + a + '"';
-                    }
-                };
-
-                TestContext.prototype.isTruthy = function (a) {
-                    if (!a) {
-                        throw 'isTrue failed when passed ' + '{' + (typeof a) + '} "' + a + '"';
-                    }
-                };
-
-                TestContext.prototype.isFalsey = function (a) {
-                    if (a) {
-                        throw 'isFalse failed when passed ' + '{' + (typeof a) + '} "' + a + '"';
-                    }
-                };
-
-                TestContext.prototype.throws = function (a) {
-                    var isThrown = false;
-                    try  {
-                        a();
-                    } catch (ex) {
-                        isThrown = true;
-                    }
-                    if (!isThrown) {
-                        throw 'did not throw an error';
-                    }
-                };
-
-                TestContext.prototype.fail = function () {
-                    throw 'fail';
-                };
-                return TestContext;
-            })();
-            tsUnit.TestContext = TestContext;
-
-            var TestClass = (function (_super) {
-                __extends(TestClass, _super);
-                function TestClass() {
-                    _super.apply(this, arguments);
-                }
-                return TestClass;
-            })(TestContext);
-            tsUnit.TestClass = TestClass;
-
-            var FakeFunction = (function () {
-                function FakeFunction(name, delgate) {
-                    this.name = name;
-                    this.delgate = delgate;
-                }
-                return FakeFunction;
-            })();
-            tsUnit.FakeFunction = FakeFunction;
-
-            var Fake = (function () {
-                function Fake(obj) {
-                    for (var prop in obj) {
-                        if (typeof obj[prop] === 'function') {
-                            this[prop] = function () {
-                            };
-                        } else {
-                            this[prop] = null;
-                        }
-                    }
-                }
-                Fake.prototype.create = function () {
-                    return this;
-                };
-
-                Fake.prototype.addFunction = function (name, delegate) {
-                    this[name] = delegate;
-                };
-
-                Fake.prototype.addProperty = function (name, value) {
-                    this[name] = value;
-                };
-                return Fake;
-            })();
-            tsUnit.Fake = Fake;
-
-            var TestDefintion = (function () {
-                function TestDefintion(testClass, name) {
-                    this.testClass = testClass;
-                    this.name = name;
-                }
-                return TestDefintion;
-            })();
-
-            var TestError = (function () {
-                function TestError(name, message) {
-                    this.name = name;
-                    this.message = message;
-                }
-                return TestError;
-            })();
-
-            var TestDescription = (function () {
-                function TestDescription(testName, funcName, message) {
-                    this.testName = testName;
-                    this.funcName = funcName;
-                    this.message = message;
-                }
-                return TestDescription;
-            })();
-            tsUnit.TestDescription = TestDescription;
-
-            var TestResult = (function () {
-                function TestResult() {
-                    this.passes = [];
-                    this.errors = [];
-                }
-                return TestResult;
-            })();
-            tsUnit.TestResult = TestResult;
-        })(unit.tsUnit || (unit.tsUnit = {}));
-        var tsUnit = unit.tsUnit;
-    })(tests.unit || (tests.unit = {}));
-    var unit = tests.unit;
-})(tests || (tests = {}));
-var tests;
-(function (tests) {
-    (function (unit) {
-        ///<reference path="../../../src/away/_definitions.ts" />
-        ///<reference path="../tsUnit.ts" />
-        (function (geom) {
-            var Matrix3DTest = (function (_super) {
-                __extends(Matrix3DTest, _super);
-                function Matrix3DTest() {
-                    _super.call(this);
-                }
-                Matrix3DTest.prototype.construct = function () {
-                    var m = new away.geom.Matrix3D();
-                    this.areIdentical(m.rawData[0], 1);
-                    this.areIdentical(m.rawData[1], 0);
-                    this.areIdentical(m.rawData[2], 0);
-                    this.areIdentical(m.rawData[3], 0);
-                    this.areIdentical(m.rawData[4], 0);
-                    this.areIdentical(m.rawData[5], 1);
-                    this.areIdentical(m.rawData[6], 0);
-                    this.areIdentical(m.rawData[7], 0);
-                    this.areIdentical(m.rawData[8], 0);
-                    this.areIdentical(m.rawData[9], 0);
-                    this.areIdentical(m.rawData[10], 1);
-                    this.areIdentical(m.rawData[11], 0);
-                    this.areIdentical(m.rawData[12], 0);
-                    this.areIdentical(m.rawData[13], 0);
-                    this.areIdentical(m.rawData[14], 0);
-                    this.areIdentical(m.rawData[15], 1);
-
-                    var r = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-                    m = new away.geom.Matrix3D(r);
-                    this.areIdentical(m.rawData[0], 0);
-                    this.areIdentical(m.rawData[1], 1);
-                    this.areIdentical(m.rawData[2], 2);
-                    this.areIdentical(m.rawData[3], 3);
-                    this.areIdentical(m.rawData[4], 4);
-                    this.areIdentical(m.rawData[5], 5);
-                    this.areIdentical(m.rawData[6], 6);
-                    this.areIdentical(m.rawData[7], 7);
-                    this.areIdentical(m.rawData[8], 8);
-                    this.areIdentical(m.rawData[9], 9);
-                    this.areIdentical(m.rawData[10], 10);
-                    this.areIdentical(m.rawData[11], 11);
-                    this.areIdentical(m.rawData[12], 12);
-                    this.areIdentical(m.rawData[13], 13);
-                    this.areIdentical(m.rawData[14], 14);
-                    this.areIdentical(m.rawData[15], 15);
-                };
-
-                Matrix3DTest.prototype.append = function () {
-                    var r1 = [1, 5, 6, 4, 8, 9, 1, 2, 3, 7, 8, 9, 1, 3, 5, 6];
-                    var r2 = [6, 5, 3, 1, 9, 8, 7, 3, 2, 1, 9, 8, 4, 6, 5, 1];
-                    var m1 = new away.geom.Matrix3D(r1);
-                    var m2 = new away.geom.Matrix3D(r2);
-
-                    m1.append(m2);
-
-                    this.areIdentical(m1.rawData[0], 79);
-                    this.areIdentical(m1.rawData[1], 75);
-                    this.areIdentical(m1.rawData[2], 112);
-                    this.areIdentical(m1.rawData[3], 68);
-                    this.areIdentical(m1.rawData[4], 139);
-                    this.areIdentical(m1.rawData[5], 125);
-                    this.areIdentical(m1.rawData[6], 106);
-                    this.areIdentical(m1.rawData[7], 45);
-                    this.areIdentical(m1.rawData[8], 133);
-                    this.areIdentical(m1.rawData[9], 133);
-                    this.areIdentical(m1.rawData[10], 175);
-                    this.areIdentical(m1.rawData[11], 97);
-                    this.areIdentical(m1.rawData[12], 67);
-                    this.areIdentical(m1.rawData[13], 70);
-                    this.areIdentical(m1.rawData[14], 99);
-                    this.areIdentical(m1.rawData[15], 56);
-                };
-
-                /*
-                
-                public appendRotation():void
-                {
-                
-                }
-                */
-                Matrix3DTest.prototype.appendScale = function () {
-                    var m = new away.geom.Matrix3D();
-                    m.appendScale(10, 20, 30);
-                    this.areIdentical(m.rawData[0], 10);
-                    this.areIdentical(m.rawData[1], 0);
-                    this.areIdentical(m.rawData[2], 0);
-                    this.areIdentical(m.rawData[3], 0);
-                    this.areIdentical(m.rawData[4], 0);
-                    this.areIdentical(m.rawData[5], 20);
-                    this.areIdentical(m.rawData[6], 0);
-                    this.areIdentical(m.rawData[7], 0);
-                    this.areIdentical(m.rawData[8], 0);
-                    this.areIdentical(m.rawData[9], 0);
-                    this.areIdentical(m.rawData[10], 30);
-                    this.areIdentical(m.rawData[11], 0);
-                    this.areIdentical(m.rawData[12], 0);
-                    this.areIdentical(m.rawData[13], 0);
-                    this.areIdentical(m.rawData[14], 0);
-                    this.areIdentical(m.rawData[15], 1);
-                };
-
-                /*
-                public appendTranslation():void
-                {
-                
-                }
-                
-                public clone():void
-                {
-                
-                }
-                
-                public copyColumnFrom():void
-                {
-                
-                }
-                
-                public copyColumnTo():void
-                {
-                
-                }
-                
-                public copyFrom():void
-                {
-                
-                }
-                
-                public copyRawDataFrom():void
-                {
-                
-                }
-                
-                public copyRawDataTo():void
-                {
-                
-                }
-                
-                public copyRowFrom():void
-                {
-                
-                }
-                
-                public copyRowTo():void
-                {
-                
-                }
-                
-                public copyToMatrix3D():void
-                {
-                
-                }
-                */
-                Matrix3DTest.prototype.decompose = function () {
-                    var scope = this;
-                    function testDecomposeResults(result, fromFlash, decimalPlaces) {
-                        if (typeof decimalPlaces === "undefined") { decimalPlaces = 5; }
-                        console.log('-----testDecomposeResults-------');
-                        console.log('fromFlash', fromFlash);
-                        console.log('result', result);
-
-                        for (var c = 0; c < result.length; c++) {
-                            var rV = result[c];
-                            var tV = fromFlash[c];
-
-                            scope.areIdentical(rV.x.toFixed(decimalPlaces), tV.x.toFixed(decimalPlaces));
-                            scope.areIdentical(rV.y.toFixed(decimalPlaces), tV.y.toFixed(decimalPlaces));
-                            scope.areIdentical(rV.z.toFixed(decimalPlaces), tV.z.toFixed(decimalPlaces));
-                        }
-                    }
-
-                    var matrix;
-                    var result;
-                    var fromFlash;
-
-                    var roundToDecimalPlaces = 5;
-
-                    //--------------------------------------------------------------------------------------------------------
-                    matrix = new away.geom.Matrix3D([-62, -85, -11, -49, -30, -83, 29, 28, 69, 56, 59, -4, 72, -10, 1, -32]);
-                    result = matrix.decompose();
-
-                    fromFlash = [
-                        new away.geom.Vector3D(72, -10, 1),
-                        new away.geom.Vector3D(0.6877229809761047, 0.10417498648166656, -2.2009902000427246),
-                        new away.geom.Vector3D(105.78279876708984, 46.84969711303711, 35.2751579284668)
-                    ];
-
-                    testDecomposeResults(result, fromFlash, roundToDecimalPlaces);
-
-                    //--------------------------------------------------------------------------------------------------------
-                    matrix = new away.geom.Matrix3D([-72, -67, -47, 51, 59, -95, -50, -41, -34, 35, 73, -39, 70, 38, -80, -38]);
-                    fromFlash = [
-                        new away.geom.Vector3D(70, 38, -80),
-                        new away.geom.Vector3D(-0.5345425605773926, 0.44579410552978516, -2.3921501636505127),
-                        new away.geom.Vector3D(109.00458526611328, 117.02401733398438, 56.71113204956055)
-                    ];
-
-                    result = matrix.decompose();
-                    testDecomposeResults(result, fromFlash, roundToDecimalPlaces);
-
-                    //--------------------------------------------------------------------------------------------------------
-                    matrix = new away.geom.Matrix3D([-93, 19, -22, 45, 72, 40, 98, 33, 58, 9, -7, -3, 12, -82, -57, -33]);
-                    result = matrix.decompose();
-
-                    fromFlash = [
-                        new away.geom.Vector3D(12, -82, -57),
-                        new away.geom.Vector3D(2.2739412784576416, 0.22775036096572876, 2.9400649070739746),
-                        new away.geom.Vector3D(97.4371566772461, 98.60648345947266, 28.360416412353516)
-                    ];
-
-                    testDecomposeResults(result, fromFlash, roundToDecimalPlaces);
-
-                    //--------------------------------------------------------------------------------------------------------
-                    matrix = new away.geom.Matrix3D([53, 34, 80, 90, -54, 62, -69, 13, 81, 1, -5, -20, 74, 55, 3, -97]);
-                    result = matrix.decompose();
-
-                    fromFlash = [
-                        new away.geom.Vector3D(74, 55, 3),
-                        new away.geom.Vector3D(-2.514647960662842, -0.903968870639801, 0.5703833103179932),
-                        new away.geom.Vector3D(101.80864715576172, 88.63056945800781, 72.43721771240234)
-                    ];
-
-                    testDecomposeResults(result, fromFlash, roundToDecimalPlaces);
-
-                    //--------------------------------------------------------------------------------------------------------
-                    matrix = new away.geom.Matrix3D([-75, -82, -19, 99, -54, -10, -38, 53, -56, -76, 84, 19, -92, -4, -3, 28]);
-                    result = matrix.decompose();
-
-                    fromFlash = [
-                        new away.geom.Vector3D(-92, -4, -3),
-                        new away.geom.Vector3D(-0.5934032201766968, 0.16933956742286682, -2.311638116836548),
-                        new away.geom.Vector3D(112.73863220214844, 64.54290771484375, 120.96671295166016)
-                    ];
-
-                    testDecomposeResults(result, fromFlash, roundToDecimalPlaces);
-
-                    //--------------------------------------------------------------------------------------------------------
-                    matrix = new away.geom.Matrix3D([82, 1, 82, 74, 72, -38, 7, 15, 78, -36, -2, 74, 66, 27, -77, -73]);
-                    result = matrix.decompose();
-
-                    fromFlash = [
-                        new away.geom.Vector3D(66, 27, -77),
-                        new away.geom.Vector3D(-2.5401413440704346, -0.7853608727455139, 0.012194517999887466),
-                        new away.geom.Vector3D(115.9698257446289, 60.70291519165039, 60.81679153442383)
-                    ];
-
-                    testDecomposeResults(result, fromFlash, roundToDecimalPlaces);
-
-                    //--------------------------------------------------------------------------------------------------------
-                    matrix = new away.geom.Matrix3D([91, 77, 71, -8, -67, 53, 51, 94, 27, -48, -21, -3, -82, -46, -50, 26]);
-                    result = matrix.decompose();
-
-                    fromFlash = [
-                        new away.geom.Vector3D(-82, -46, -50),
-                        new away.geom.Vector3D(0.5039752125740051, -0.5371845960617065, 0.7022569179534912),
-                        new away.geom.Vector3D(138.7479705810547, 98.96748352050781, 18.558963775634766)
-                    ];
-
-                    testDecomposeResults(result, fromFlash, roundToDecimalPlaces);
-                };
-
-                Matrix3DTest.prototype.recompose = function () {
-                    var scope = this;
-                    function testRecomposeResults(result, as3Result, decimalPlaces) {
-                        if (typeof decimalPlaces === "undefined") { decimalPlaces = 5; }
-                        for (var c = 0; c < result.length; c++) {
-                            var value = result[c];
-                            var as3Value = as3Result[c];
-
-                            console.log(value.toFixed(decimalPlaces), as3Value.toFixed(decimalPlaces));
-                            scope.areIdentical(value.toFixed(decimalPlaces), as3Value.toFixed(decimalPlaces));
-                        }
-                    }
-
-                    var matrix;
-                    var as3Result;
-                    var vArray;
-                    var roundToDecimalPlaces = 5;
-                    var vS;
-                    var vR;
-                    var vT;
-
-                    //---------------------------------------------------------------------------------------------
-                    as3Result = [0, 0, 0, 0, 1.299990177154541, 1.5078045129776, -0.1911831498146057, 0, 2.237638235092163, -1.9709597826004028, -0.32907840609550476, 0, 4, 0, 6, 1];
-                    matrix = new away.geom.Matrix3D([
-                        0,
-                        10,
-                        10,
-                        1,
-                        10,
-                        5,
-                        10,
-                        10,
-                        10,
-                        10,
-                        5,
-                        10,
-                        1,
-                        10,
-                        10,
-                        0
-                    ]);
-
-                    vS = new away.geom.Vector3D(0, 2, 3);
-                    vR = new away.geom.Vector3D(7, 8, 0);
-                    vT = new away.geom.Vector3D(4, 0, 6);
-
-                    vArray = new Array(vT, vR, vS);
-
-                    matrix.recompose(vArray);
-
-                    testRecomposeResults(matrix.rawData, as3Result, roundToDecimalPlaces);
-
-                    //---------------------------------------------------------------------------------------------
-                    as3Result = [-0.22484508156776428, 0.4912954568862915, -0.8414709568023682, 0, -1.571915864944458, 0.838008463382721, 0.9092973470687866, 0, 1.7278404235839844, 2.2907590866088867, 0.8757796883583069, 0, 2, 1, 5, 1];
-                    matrix = new away.geom.Matrix3D([
-                        0,
-                        20,
-                        20,
-                        1,
-                        20,
-                        5,
-                        20,
-                        20,
-                        20,
-                        20,
-                        5,
-                        10,
-                        1,
-                        20,
-                        20,
-                        0
-                    ]);
-
-                    vS = new away.geom.Vector3D(1, 2, 3);
-                    vR = new away.geom.Vector3D(1, 1, 2);
-                    vT = new away.geom.Vector3D(2, 1, 5);
-
-                    vArray = new Array(vT, vR, vS);
-
-                    matrix.recompose(vArray);
-
-                    testRecomposeResults(matrix.rawData, as3Result, roundToDecimalPlaces);
-
-                    //---------------------------------------------------------------------------------------------
-                    as3Result = [1.361820101737976, -0.39629805088043213, 4.794621467590332, 0, 3.085038185119629, -4.98231315612793, -1.288057565689087, 0, 5.6930437088012695, 3.860661506652832, -1.2978979349136353, 0, 3, 4, 5, 1];
-                    matrix = new away.geom.Matrix3D([
-                        0,
-                        2,
-                        2,
-                        1,
-                        2,
-                        5,
-                        2,
-                        2,
-                        2,
-                        2,
-                        5,
-                        2,
-                        1,
-                        2,
-                        2,
-                        0
-                    ]);
-
-                    vS = new away.geom.Vector3D(5, 6, 7);
-                    vR = new away.geom.Vector3D(4, 5, 6);
-                    vT = new away.geom.Vector3D(3, 4, 5);
-
-                    vArray = new Array(vT, vR, vS);
-
-                    matrix.recompose(vArray);
-
-                    testRecomposeResults(matrix.rawData, as3Result, roundToDecimalPlaces);
-                };
-
-                Matrix3DTest.prototype.deltaTransformVector = function () {
-                    var rawData = [1, 5, 6, 4, 8, 9, 1, 2, 3, 7, 8, 9, 1, 3, 5, 6];
-                    var m = new away.geom.Matrix3D();
-                    var v = new away.geom.Vector3D(8, 4, 6);
-
-                    var res = m.deltaTransformVector(v);
-                    this.areIdentical(res.x, v.x);
-                    this.areIdentical(res.y, v.y);
-                    this.areIdentical(res.z, v.z);
-                };
-
-                Matrix3DTest.prototype.identity = function () {
-                    var rawData = [1, 5, 6, 4, 8, 9, 1, 2, 3, 7, 8, 9, 1, 3, 5, 6];
-                    var m = new away.geom.Matrix3D(rawData);
-                    m.identity();
-
-                    this.areIdentical(m.rawData[0], 1);
-                    this.areIdentical(m.rawData[1], 0);
-                    this.areIdentical(m.rawData[2], 0);
-                    this.areIdentical(m.rawData[3], 0);
-                    this.areIdentical(m.rawData[4], 0);
-                    this.areIdentical(m.rawData[5], 1);
-                    this.areIdentical(m.rawData[6], 0);
-                    this.areIdentical(m.rawData[7], 0);
-                    this.areIdentical(m.rawData[8], 0);
-                    this.areIdentical(m.rawData[9], 0);
-                    this.areIdentical(m.rawData[10], 1);
-                    this.areIdentical(m.rawData[11], 0);
-                    this.areIdentical(m.rawData[12], 0);
-                    this.areIdentical(m.rawData[13], 0);
-                    this.areIdentical(m.rawData[14], 0);
-                    this.areIdentical(m.rawData[15], 1);
-                };
-
-                Matrix3DTest.prototype.interpolate = function () {
-                    var scope = this;
-                    function testInterpolateResults(result, as3Result, decimalPlaces) {
-                        if (typeof decimalPlaces === "undefined") { decimalPlaces = 5; }
-                        console.log('------');
-                        console.log('testInterpolateResults - TS :', result);
-                        console.log('testInterpolateResults - AS3:', as3Result);
-
-                        for (var c = 0; c < result.length; c++) {
-                            var value = result[c];
-                            var as3Value = as3Result[c];
-
-                            scope.areIdentical(value.toFixed(decimalPlaces), as3Value.toFixed(decimalPlaces));
-                        }
-                    }
-
-                    var roundToDecimalPlaces = 5;
-
-                    var percent;
-                    var as3Result;
-
-                    var thisMat;
-                    var result;
-                    var toMat;
-
-                    thisMat = new away.geom.Matrix3D([
-                        0,
-                        10,
-                        10,
-                        1,
-                        10,
-                        5,
-                        10,
-                        10,
-                        10,
-                        10,
-                        5,
-                        10,
-                        1,
-                        10,
-                        10,
-                        0
-                    ]);
-
-                    toMat = new away.geom.Matrix3D([
-                        10,
-                        20,
-                        20,
-                        10,
-                        20,
-                        50,
-                        20,
-                        20,
-                        20,
-                        20,
-                        50,
-                        20,
-                        10,
-                        20,
-                        20,
-                        10
-                    ]);
-
-                    percent = 0;
-                    as3Result = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 10, 10, 1];
-                    result = away.geom.Matrix3D.interpolate(thisMat, toMat, percent);
-                    testInterpolateResults(result.rawData, as3Result, roundToDecimalPlaces);
-
-                    percent = 0.1;
-                    as3Result = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1.899999976158142, 11, 11, 1];
-                    result = away.geom.Matrix3D.interpolate(thisMat, toMat, percent);
-                    testInterpolateResults(result.rawData, as3Result, roundToDecimalPlaces);
-
-                    percent = 0.2;
-                    as3Result = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 2.799999952316284, 12, 12, 1];
-                    result = away.geom.Matrix3D.interpolate(thisMat, toMat, percent);
-                    testInterpolateResults(result.rawData, as3Result, roundToDecimalPlaces);
-
-                    percent = 0.3;
-                    as3Result = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 3.700000047683716, 13, 13, 1];
-                    result = away.geom.Matrix3D.interpolate(thisMat, toMat, percent);
-                    testInterpolateResults(result.rawData, as3Result, roundToDecimalPlaces);
-
-                    percent = 0.4;
-                    as3Result = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 4.599999904632568, 14, 14, 1];
-                    result = away.geom.Matrix3D.interpolate(thisMat, toMat, percent);
-                    testInterpolateResults(result.rawData, as3Result, roundToDecimalPlaces);
-
-                    percent = 0.5;
-                    as3Result = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 5.5, 15, 15, 1];
-                    result = away.geom.Matrix3D.interpolate(thisMat, toMat, percent);
-                    testInterpolateResults(result.rawData, as3Result, roundToDecimalPlaces);
-
-                    percent = 0.6;
-                    as3Result = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 6.400000095367432, 16, 16, 1];
-                    result = away.geom.Matrix3D.interpolate(thisMat, toMat, percent);
-                    testInterpolateResults(result.rawData, as3Result, roundToDecimalPlaces);
-
-                    percent = 0.7;
-                    as3Result = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 7.300000190734863, 17, 17, 1];
-                    result = away.geom.Matrix3D.interpolate(thisMat, toMat, percent);
-                    testInterpolateResults(result.rawData, as3Result, roundToDecimalPlaces);
-
-                    percent = 0.8;
-                    as3Result = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 8.199999809265137, 18, 18, 1];
-                    result = away.geom.Matrix3D.interpolate(thisMat, toMat, percent);
-                    testInterpolateResults(result.rawData, as3Result, roundToDecimalPlaces);
-
-                    percent = 0.9;
-                    as3Result = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 9.100000381469727, 19, 19, 1];
-                    result = away.geom.Matrix3D.interpolate(thisMat, toMat, percent);
-                    testInterpolateResults(result.rawData, as3Result, roundToDecimalPlaces);
-
-                    percent = 1;
-                    as3Result = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 10, 20, 20, 1];
-                    result = away.geom.Matrix3D.interpolate(thisMat, toMat, percent);
-                    testInterpolateResults(result.rawData, as3Result, roundToDecimalPlaces);
-                };
-                return Matrix3DTest;
-            })(tests.unit.tsUnit.TestClass);
-            geom.Matrix3DTest = Matrix3DTest;
-        })(unit.geom || (unit.geom = {}));
-        var geom = unit.geom;
-    })(tests.unit || (tests.unit = {}));
-    var unit = tests.unit;
-})(tests || (tests = {}));
-var tests;
-(function (tests) {
-    (function (unit) {
-        ///<reference path="../../../src/away/_definitions.ts" />
-        ///<reference path="../tsUnit.ts" />
-        (function (geom) {
-            var Vector3DTest = (function (_super) {
-                __extends(Vector3DTest, _super);
-                function Vector3DTest() {
-                    _super.apply(this, arguments);
-                }
-                Vector3DTest.prototype.construct = function () {
-                    var m = new away.geom.Vector3D();
-                    this.areIdentical(m.x, 0);
-                    this.areIdentical(m.y, 0);
-                    this.areIdentical(m.z, 0);
-                    this.areIdentical(m.w, 0);
-
-                    var m = new away.geom.Vector3D(1, 2, 3, 4);
-                    this.areIdentical(m.x, 1);
-                    this.areIdentical(m.y, 2);
-                    this.areIdentical(m.z, 3);
-                    this.areIdentical(m.w, 4);
-                };
-
-                Vector3DTest.prototype.getLength = function () {
-                    var m;
-
-                    m = new away.geom.Vector3D();
-                    this.areIdentical(m.length, 0);
-
-                    m = new away.geom.Vector3D(1, 2, 3, 4);
-                    this.areIdentical(m.length, 3.7416573867739413);
-
-                    m = new away.geom.Vector3D(5, 6, 7, 8);
-                    this.areIdentical(m.length, 10.488088481701515);
-                };
-
-                Vector3DTest.prototype.getLengthSquared = function () {
-                    var m;
-
-                    m = new away.geom.Vector3D();
-                    this.areIdentical(m.lengthSquared, 0);
-
-                    m = new away.geom.Vector3D(1, 2, 3, 4);
-                    this.areIdentical(m.lengthSquared, 14);
-
-                    m = new away.geom.Vector3D(5, 6, 7, 8);
-                    this.areIdentical(m.lengthSquared, 110);
-                };
-
-                Vector3DTest.prototype.add = function () {
-                    var m;
-                    var t;
-                    var result;
-
-                    m = new away.geom.Vector3D(2, 2, 2, 2);
-                    t = new away.geom.Vector3D(1, 2, 3, 4);
-
-                    result = m.add(t);
-
-                    this.areIdentical(result.x, 3);
-                    this.areIdentical(result.y, 4);
-                    this.areIdentical(result.z, 5);
-                    this.areIdentical(result.w, 6);
-                };
-
-                Vector3DTest.prototype.angleBetween = function () {
-                    var m;
-                    var t;
-                    var result;
-
-                    m = new away.geom.Vector3D(2, 2, 2, 2);
-                    t = new away.geom.Vector3D(1, 2, 3, 4);
-
-                    this.areIdentical(away.geom.Vector3D.angleBetween(m, t), 0.3875966866551805);
-                };
-
-                Vector3DTest.prototype.clone = function () {
-                    var m;
-                    var result;
-
-                    m = new away.geom.Vector3D(2, 3, 4, 5);
-
-                    result = m.clone();
-
-                    this.areIdentical(result.x, m.x);
-                    this.areIdentical(result.y, m.y);
-                    this.areIdentical(result.z, m.z);
-                    this.areIdentical(result.w, m.w);
-                };
-
-                Vector3DTest.prototype.copyFrom = function () {
-                    var m = new away.geom.Vector3D(2, 3, 4, 5);
-                    var result = new away.geom.Vector3D();
-
-                    result.copyFrom(m);
-
-                    this.areIdentical(result.x, 2);
-                    this.areIdentical(result.y, 3);
-                    this.areIdentical(result.z, 4);
-                    this.areIdentical(result.w, 5);
-                    //console.log( 'copyFrom' , result.x , result.y , result.z , result.w);
-                };
-
-                Vector3DTest.prototype.crossProduct = function () {
-                    var m = new away.geom.Vector3D(2, 3, 4, 5);
-                    var n = new away.geom.Vector3D(1, 2, 3, 4);
-                    var result = m.crossProduct(n);
-
-                    this.areIdentical(result.x, 1);
-                    this.areIdentical(result.y, -2);
-                    this.areIdentical(result.z, 1);
-                    this.areIdentical(result.w, 1);
-                };
-
-                Vector3DTest.prototype.decrementBy = function () {
-                    var m = new away.geom.Vector3D(2, 3, 4, 5);
-                    var n = new away.geom.Vector3D(1, 2, 3, 4);
-
-                    m.decrementBy(n);
-
-                    this.areIdentical(m.x, 1);
-                    this.areIdentical(m.y, 1);
-                    this.areIdentical(m.z, 1);
-                    this.areIdentical(m.w, 5);
-                };
-
-                Vector3DTest.prototype.distance = function () {
-                    var m = new away.geom.Vector3D(2, 3, 4, 5);
-                    var n = new away.geom.Vector3D(1, 2, 3, 4);
-
-                    this.areIdentical(away.geom.Vector3D.distance(m, n), 1.7320508075688772);
-                };
-
-                Vector3DTest.prototype.dotProduct = function () {
-                    var m = new away.geom.Vector3D(2, 3, 4, 5);
-                    var n = new away.geom.Vector3D(1, 2, 3, 4);
-
-                    this.areIdentical(m.dotProduct(n), 20);
-                };
-
-                Vector3DTest.prototype.equals = function () {
-                    var m = new away.geom.Vector3D(2, 3, 4, 5);
-                    var n = new away.geom.Vector3D(1, 2, 3, 4);
-                    var o = new away.geom.Vector3D(1, 2, 3, 4);
-                    var p = new away.geom.Vector3D(1, 2, 3, 1);
-
-                    this.areIdentical(m.equals(n), false);
-                    this.areIdentical(n.equals(o, true), true);
-                    this.areIdentical(n.equals(p, true), false);
-                };
-
-                Vector3DTest.prototype.incrementBy = function () {
-                    var m = new away.geom.Vector3D(2, 3, 4, 5);
-                    var n = new away.geom.Vector3D(1, 2, 3, 4);
-                    var o = new away.geom.Vector3D(1, 2, 3, 4);
-                    var p = new away.geom.Vector3D(1, 2, 3, 1);
-
-                    m.incrementBy(p);
-
-                    this.areIdentical(m.x, 3);
-                    this.areIdentical(m.y, 5);
-                    this.areIdentical(m.z, 7);
-                    this.areIdentical(m.w, 5);
-                };
-
-                Vector3DTest.prototype.nearEquals = function () {
-                    var m = new away.geom.Vector3D(2, 3, 4, 5);
-                    var n = new away.geom.Vector3D(1, 2, 3, 4);
-                    var o = new away.geom.Vector3D(1, 2, 3, 4);
-                    var p = new away.geom.Vector3D(1, 2, 3, 1);
-
-                    this.areIdentical(m.nearEquals(n, 1), false);
-                    this.areIdentical(m.nearEquals(n, 1.5), true);
-                    this.areIdentical(m.nearEquals(n, .5), false);
-
-                    this.areIdentical(o.nearEquals(p, .5), false);
-                    this.areIdentical(o.nearEquals(p, .5, false), true);
-                    //this.areIdentical( p.nearEquals( p ,.5 ) , false );
-                };
-
-                Vector3DTest.prototype.negate = function () {
-                    var m = new away.geom.Vector3D(2, 3, 4, 5);
-                    var n = new away.geom.Vector3D(1, 2, 3, 4);
-                    var o = new away.geom.Vector3D(1, 2, 3, 4);
-                    var p = new away.geom.Vector3D(1, 2, 3, 1);
-
-                    m.negate();
-
-                    this.areIdentical(m.x, -2);
-                    this.areIdentical(m.y, -3);
-                    this.areIdentical(m.z, -4);
-                    this.areIdentical(m.w, 5);
-                };
-
-                Vector3DTest.prototype.normalize = function () {
-                    var m = new away.geom.Vector3D(2, 3, 4, 5);
-                    var n = new away.geom.Vector3D(1, 2, 3, 4);
-                    var o = new away.geom.Vector3D(1, 2, 3, 4);
-                    var p = new away.geom.Vector3D(1, 2, 3, 1);
-
-                    m.normalize();
-
-                    this.areIdentical(m.x, 0.3713906763541037);
-                    this.areIdentical(m.y, 0.5570860145311556);
-                    this.areIdentical(m.z, 0.7427813527082074);
-                    this.areIdentical(m.w, 5);
-                };
-
-                Vector3DTest.prototype.project = function () {
-                    var m = new away.geom.Vector3D(2, 3, 4, 5);
-                    var n = new away.geom.Vector3D(1, 2, 3, 4);
-                    var o = new away.geom.Vector3D(1, 2, 3, 4);
-                    var p = new away.geom.Vector3D(1, 2, 3, 1);
-
-                    m.project();
-
-                    this.areIdentical(m.x, 0.4);
-                    this.areIdentical(m.y, 0.6);
-                    this.areIdentical(m.z, 0.8);
-                    this.areIdentical(m.w, 5);
-                };
-
-                Vector3DTest.prototype.scaleBy = function () {
-                    var m = new away.geom.Vector3D(2, 3, 4, 5);
-                    var n = new away.geom.Vector3D(1, 2, 3, 4);
-                    var o = new away.geom.Vector3D(1, 2, 3, 4);
-                    var p = new away.geom.Vector3D(1, 2, 3, 1);
-
-                    m.scaleBy(2);
-
-                    this.areIdentical(m.x, 4);
-                    this.areIdentical(m.y, 6);
-                    this.areIdentical(m.z, 8);
-                    this.areIdentical(m.w, 5);
-                };
-
-                Vector3DTest.prototype.setTo = function () {
-                    var m = new away.geom.Vector3D(2, 3, 4, 5);
-                    var n = new away.geom.Vector3D(1, 2, 3, 4);
-                    var o = new away.geom.Vector3D(1, 2, 3, 4);
-                    var p = new away.geom.Vector3D(1, 2, 3, 1);
-
-                    n.setTo(2, 3, 4);
-
-                    this.areIdentical(n.x, 2);
-                    this.areIdentical(n.y, 3);
-                    this.areIdentical(n.z, 4);
-                    this.areIdentical(m.w, 5);
-                };
-
-                Vector3DTest.prototype.subtract = function () {
-                    var m = new away.geom.Vector3D(2, 3, 4, 5);
-                    var n = new away.geom.Vector3D(1, 2, 3, 4);
-                    var o = new away.geom.Vector3D(1, 2, 3, 4);
-                    var p = new away.geom.Vector3D(1, 2, 3, 1);
-
-                    n.subtract(m);
-
-                    this.areIdentical(n.x, 1);
-                    this.areIdentical(n.y, 2);
-                    this.areIdentical(n.z, 3);
-                    this.areIdentical(n.w, 4);
-                };
-                return Vector3DTest;
-            })(tests.unit.tsUnit.TestClass);
-            geom.Vector3DTest = Vector3DTest;
-        })(unit.geom || (unit.geom = {}));
-        var geom = unit.geom;
-    })(tests.unit || (tests.unit = {}));
-    var unit = tests.unit;
-})(tests || (tests = {}));
-var tests;
-(function (tests) {
-    ///<reference path="geom/Matrix3DTest.ts" />
-    ///<reference path="geom/Vector3DTest.ts" />
-    (function (unit) {
-        var TestSuite = (function () {
-            function TestSuite() {
-                var _div = document.createElement('div');
-                _div.id = 'results';
-                document.body.appendChild(_div);
-
-                this._test = new tests.unit.tsUnit.Test();
-                this._test.addTestClass(new tests.unit.geom.Matrix3DTest(), 'Matrix3DTest');
-                this._test.addTestClass(new tests.unit.geom.Vector3DTest(), 'Vector3DTest');
-
-                this._test.showResults(document.getElementById('results'), this._test.run());
-            }
-            TestSuite.prototype.addTests = function () {
-            };
-            return TestSuite;
-        })();
-        unit.TestSuite = TestSuite;
-    })(tests.unit || (tests.unit = {}));
-    var unit = tests.unit;
-})(tests || (tests = {}));
-var tests;
-(function (tests) {
-    ///<reference path="../../../build/Away3D.next.d.ts" />
-    //<reference path="../../../src/Away3D.ts" />
-    (function (library) {
-        var AWDParserTest = (function () {
-            function AWDParserTest() {
-                var _this = this;
-                away.Debug.LOG_PI_ERRORS = true;
-                away.Debug.THROW_ERRORS = false;
-
-                away.library.AssetLibrary.enableParser(away.loaders.AWDParser);
-
-                this.token = away.library.AssetLibrary.load(new away.net.URLRequest('assets/suzanne.awd'));
-                this.token.addEventListener(away.events.LoaderEvent.RESOURCE_COMPLETE, this.onResourceComplete, this);
-                this.token.addEventListener(away.events.AssetEvent.ASSET_COMPLETE, this.onAssetComplete, this);
-
-                this._view = new away.containers.View3D();
-                this._timer = new away.utils.RequestAnimationFrame(this.render, this);
-
-                window.onresize = function () {
-                    return _this.resize();
-                };
-            }
-            AWDParserTest.prototype.resize = function () {
-                this._view.y = 0;
-                this._view.x = 0;
-                this._view.width = window.innerWidth;
-                this._view.height = window.innerHeight;
-            };
-
-            AWDParserTest.prototype.render = function (dt) {
-                if (this._suzane) {
-                    this._suzane.rotationY += 1;
-                }
-
-                this._view.render();
-                this._view.camera.z = -2000;
-            };
-
-            AWDParserTest.prototype.onAssetComplete = function (e) {
-                console.log('------------------------------------------------------------------------------');
-                console.log('away.events.AssetEvent.ASSET_COMPLETE', away.library.AssetLibrary.getAsset(e.asset.name));
-                console.log('------------------------------------------------------------------------------');
-            };
-
-            AWDParserTest.prototype.onResourceComplete = function (e) {
-                console.log('------------------------------------------------------------------------------');
-                console.log('away.events.LoaderEvent.RESOURCE_COMPLETE', e);
-                console.log('------------------------------------------------------------------------------');
-
-                var loader = e.target;
-                var numAssets = loader.baseDependency.assets.length;
-
-                for (var i = 0; i < numAssets; ++i) {
-                    var asset = loader.baseDependency.assets[i];
-
-                    switch (asset.assetType) {
-                        case away.library.AssetType.MESH:
-                            var mesh = asset;
-
-                            mesh.scale(600);
-
-                            this._suzane = mesh;
-
-                            this._view.scene.addChild(mesh);
-                            this._timer.start();
-
-                            this.resize();
-
-                            break;
-
-                        case away.library.AssetType.GEOMETRY:
-                            break;
-
-                        case away.library.AssetType.MATERIAL:
-                            break;
-                    }
-                }
-            };
-            return AWDParserTest;
-        })();
-        library.AWDParserTest = AWDParserTest;
-    })(tests.library || (tests.library = {}));
-    var library = tests.library;
-})(tests || (tests = {}));
 var demos;
 (function (demos) {
-    //<reference path="../../../lib/Away3D.next.d.ts" />
+    //<reference path="../../../build/Away3D.next.d.ts" />
     ///<reference path="../../../src/Away3D.ts" />
     (function (parsers) {
-        var AWDSuzanne = (function () {
-            function AWDSuzanne() {
+        var ShadowTest = (function () {
+            function ShadowTest() {
                 var _this = this;
                 this.lookAtPosition = new away.geom.Vector3D();
                 this._cameraIncrement = 0;
-                away.Debug.LOG_PI_ERRORS = true;
+                away.Debug.LOG_PI_ERRORS = false;
                 away.Debug.THROW_ERRORS = false;
 
                 away.library.AssetLibrary.enableParser(away.loaders.AWDParser);
 
-                this._token = away.library.AssetLibrary.load(new away.net.URLRequest('assets/suzanne.awd'));
-                this._token.addEventListener(away.events.LoaderEvent.RESOURCE_COMPLETE, this.onResourceComplete, this);
-                this._token.addEventListener(away.events.AssetEvent.ASSET_COMPLETE, this.onAssetComplete, this);
+                away.library.AssetLibrary.addEventListener(away.events.LoaderEvent.RESOURCE_COMPLETE, this.onResourceComplete, this);
+                away.library.AssetLibrary.load(new away.net.URLRequest("assets/dots.png"));
 
                 this._view = new away.containers.View3D();
-                this._view.camera.lens.far = 6000;
+                this._view.camera.y = 100;
+                this._view.camera.lens.far = 1100;
+
+                console.log('setMyLensFar');
                 this._timer = new away.utils.RequestAnimationFrame(this.render, this);
-
-                this._light = new away.lights.DirectionalLight();
-                this._light.color = 0x683019;
-                this._light.direction = new away.geom.Vector3D(1, 0, 0);
-                this._light.ambient = 0.1;
-                this._light.ambientColor = 0x85b2cd;
-                this._light.diffuse = 2.8;
-                this._light.specular = 1.8;
-                this._view.scene.addChild(this._light);
-
-                this._lightPicker = new away.materials.StaticLightPicker([this._light]);
 
                 window.onresize = function () {
                     return _this.resize();
                 };
             }
-            AWDSuzanne.prototype.resize = function () {
+            ShadowTest.prototype.resize = function () {
                 this._view.y = 0;
                 this._view.x = 0;
                 this._view.width = window.innerWidth;
                 this._view.height = window.innerHeight;
             };
 
-            AWDSuzanne.prototype.render = function (dt) {
+            ShadowTest.prototype.render = function (dt) {
                 if (this._view.camera) {
                     this._view.camera.lookAt(this.lookAtPosition);
                     this._cameraIncrement += 0.01;
-                    this._view.camera.x = Math.cos(this._cameraIncrement) * 1400;
-                    this._view.camera.z = Math.sin(this._cameraIncrement) * 1400;
-
-                    this._light.x = Math.cos(this._cameraIncrement) * 1400;
-                    this._light.y = Math.sin(this._cameraIncrement) * 1400;
+                    this._view.camera.x = Math.cos(this._cameraIncrement) * 400;
+                    this._view.camera.z = Math.sin(this._cameraIncrement) * 400;
                 }
 
                 this._view.render();
             };
 
-            AWDSuzanne.prototype.onAssetComplete = function (e) {
-                console.log('------------------------------------------------------------------------------');
-                console.log('away.events.AssetEvent.ASSET_COMPLETE', away.library.AssetLibrary.getAsset(e.asset.name));
-                console.log('------------------------------------------------------------------------------');
-            };
+            ShadowTest.prototype.onResourceComplete = function (e) {
+                var assets = e.assets;
+                var length = assets.length;
 
-            AWDSuzanne.prototype.onResourceComplete = function (e) {
-                console.log('------------------------------------------------------------------------------');
-                console.log('away.events.LoaderEvent.RESOURCE_COMPLETE', e);
-                console.log('------------------------------------------------------------------------------');
+                for (var c = 0; c < length; c++) {
+                    var asset = assets[c];
 
-                var loader = e.target;
-                var numAssets = loader.baseDependency.assets.length;
+                    switch (e.url) {
+                        case "assets/dots.png":
+                            var light = new away.lights.DirectionalLight();
+                            light.castsShadows = true;
+                            var lp = new away.materials.StaticLightPicker([light]);
+                            var tx = away.library.AssetLibrary.getAsset(asset.name);
+                            var planeMat = new away.materials.TextureMaterial(tx);
+                            planeMat.shadowMethod = new away.materials.SoftShadowMapMethod(light, 10, 5);
+                            planeMat.shadowMethod.epsilon = 0.2;
+                            planeMat.lightPicker = lp;
 
-                for (var i = 0; i < numAssets; ++i) {
-                    var asset = loader.baseDependency.assets[i];
+                            var planeMesh = new away.entities.Mesh(new away.primitives.PlaneGeometry(500, 500), planeMat);
+                            planeMesh.castsShadows = false;
 
-                    switch (asset.assetType) {
-                        case away.library.AssetType.MESH:
-                            var mesh = asset;
+                            var cubeMat = new away.materials.ColorMaterial(0x00ffff);
+                            cubeMat.shadowMethod = new away.materials.SoftShadowMapMethod(light, 10, 5);
+                            cubeMat.shadowMethod.epsilon = 0.2;
+                            cubeMat.lightPicker = lp;
 
-                            this._suzane = mesh;
-                            this._suzane.material.lightPicker = this._lightPicker;
-                            this._suzane.y = -100;
+                            var cubeMesh = new away.entities.Mesh(new away.primitives.CubeGeometry(), cubeMat);
+                            cubeMesh.y = 50;
+                            cubeMesh.castsShadows = true;
 
-                            for (var c = 0; c < 80; c++) {
-                                var clone = mesh.clone();
-                                clone.x = this.getRandom(-2000, 2000);
-                                clone.y = this.getRandom(-2000, 2000);
-                                clone.z = this.getRandom(-2000, 2000);
-                                clone.scale(this.getRandom(50, 200));
-                                clone.rotationY = this.getRandom(0, 360);
-                                this._view.scene.addChild(clone);
-                            }
+                            this._view.scene.addChild(light);
+                            this._view.scene.addChild(planeMesh);
+                            this._view.scene.addChild(cubeMesh);
 
-                            mesh.scale(500);
-
-                            this._view.scene.addChild(mesh);
-
-                            this._timer.start();
-
-                            this.resize();
-
-                            break;
-
-                        case away.library.AssetType.GEOMETRY:
-                            break;
-
-                        case away.library.AssetType.MATERIAL:
                             break;
                     }
                 }
-            };
 
-            AWDSuzanne.prototype.getRandom = function (min, max) {
-                return Math.random() * (max - min) + min;
+                this._timer.start();
             };
-            return AWDSuzanne;
+            return ShadowTest;
         })();
-        parsers.AWDSuzanne = AWDSuzanne;
+        parsers.ShadowTest = ShadowTest;
     })(demos.parsers || (demos.parsers = {}));
     var parsers = demos.parsers;
 })(demos || (demos = {}));
-///<reference path="../src/Away3D.ts"/>
-///<reference path="unit/TestSuite.ts"/>
-///<reference path="away/library/AWDParserTest.ts"/>
-///<reference path="demos/parsers/AWDSuzanne.ts"/>
+//<reference path="demos/parsers/AWDShadowTest.ts"/>
+///<reference path="demos/parsers/ShadowTest.ts"/>
 var away;
 (function (away) {
     var AppHarnessDebug = (function () {
         function AppHarnessDebug() {
-            //new tests.unit.TestSuite();
             setTimeout(this.init, 1000);
         }
         AppHarnessDebug.prototype.init = function () {
-            new tests.library.AWDParserTest();
-            //new demos.parsers.AWDSuzanne();
+            new demos.parsers.ShadowTest();
         };
         return AppHarnessDebug;
     })();
