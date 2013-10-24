@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+
+    <style>
+
+        body
+        {
+            height: 100%;
+        }
+
+
+        #logoContainer{
+
+            top:0px;
+            position: absolute;
+            left: 100px;
+            width: 119px;
+            height: 120px;
+            z-index: 25;
+            background: #000000 url("../../img/logo.gif") no-repeat 0% 90%;
+
+        }
+
+    </style>
+
+    <script type="text/javascript" language="javascript" src="js/AppHarness.js"></script>
+
+    <script type="text/javascript">
+
+
+        window.onload = function ()
+        {
+            var harness = new away.AppHarness();
+
+            //---------------------------------------------------------------------------
+            // Demos
+            //---------------------------------------------------------------------------
+
+            harness.addTest( 'Demo.AWDParser'                       , 'demos.parsers.AWDSuzanne'                    , 'js/AWDSuzanne.js'            , 'demos/parsers/AWDSuzanne.ts' );
+            harness.addTest( 'Demo.OBJParser'                       , 'demos.parsers.ObjChiefTestDay'               , 'js/ObjChiefTestDay.js'       , 'demos/parsers/ObjChiefTest.ts' );
+            harness.addTest( 'Demo.TorusVortex'                     , 'demos.cubes.CubeDemo'                        , 'js/CubeDemo.js'              , 'demos/cubes/CubeDemo.ts' );
+            harness.addTest( 'Demo.TorusObject3DDemo'               , 'demos.object3d.TorusObject3DDemo'            , 'js/TorusObject3DDemo.js'     , 'demos/Object3D/TorusObject3DDemo.ts'  );
+            harness.addTest( 'Demo.Materials - Alpha'               , 'demos.materials.MaterialAlphaTest'           , 'js/MaterialAlphaTest.js'     , 'demos/materials/MaterialAlphaTest.ts'  );
+            harness.addTest( 'Demo.ShadowMaps'                      , 'examples.Basic_Load3DS'                      , 'js/Basic_Load3DS.js'         , 'demos/basic/Basic_Load3DS.ts'  );
+            harness.addTest( 'Demo.Intermediate_PerelithKnight'     , 'examples.Intermediate_PerelithKnight'        , 'js/Intermediate_PerelithKnight.js'        , 'demos/basic/Intermediate_PerelithKnight.ts'  );
+            harness.addTest( 'Primitives.WireframePrimitives'       , 'tests.primitives.WireframePrimitiveTest'     , 'js/WireframePrimitive.js'    , 'away/primitives/WireframePrimitive.ts'  );
+            harness.addTest( 'Primitives.PrimitivesTest'            , 'tests.primitives.PrimitivesTest'             , 'js/PrimitivesTest.js'        , 'away/primitives/PrimitivesTest.ts'  );
+            harness.addTest( 'Parsers.AWDSponza'                    , 'demos.parsers.AWDSponza'                     , 'js/AWDSponza.js'             , 'demos/parsers/AWDSponza.ts'  );
+            harness.addTest( 'Parsers.AWDShadow'                    , 'demos.parsers.AWDShadowTest'                 , 'js/AWDShadowTest.js'         , 'demos/parsers/AWDShadowTest.ts'  );
+            harness.addTest( 'Library.ObjLibLoaderTest'             ,  'tests.library.ObjLibLoaderTest'             , 'js/ObjLibLoaderTest.js'      , 'away/library/ObjLibLoaderTest.ts'  );
+            harness.addTest( 'Sprite3D'                             ,  'tests.entities.Sprite3DTest'                , 'js/Sprite3DTest.js'          , 'away/entities/Sprite3DTest.ts'  );
+            harness.addTest( 'Controllers.HoverControllerTest'      ,  'tests.controllers.HoverControllerTest'      , 'js/HoverControllerTest.js'   , 'away/controllers/HoverControllerTest.ts'  );
+            harness.addTest( 'Containers.View3DTest'                ,  'tests.containers.View3DTest'                , 'js/View3DTest.js'            , 'away/containers/View3DTest.ts'  );
+            harness.addTest( 'Base.View3DTest'                      ,  'tests.base.Object3DTestV2'                  , 'js/Object3DTest_v2.js'       , 'away/base/Object3DTest_v2.ts'  );
+
+            harness.load( 'demos.object3d.TorusObject3DDemo' , 'js/TorusObject3DDemo.js'    , 'demos/Object3D/TorusObject3DDemo.ts'  );
+
+            harness.start( true ); // Start
+
+        }
+
+    </script>
+</head>
+
+</head>
+<body>
+    <div id="logoContainer"></div>
+
+</body>
+</html>
