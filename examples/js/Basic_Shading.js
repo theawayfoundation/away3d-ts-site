@@ -1,4 +1,4 @@
-///<reference path="../../away3d-core-ts/build/Away3D.next.d.ts" />
+///<reference path="../libs/Away3D.next.d.ts" />
 /*
 
 Shading example in Away3d
@@ -164,17 +164,17 @@ var examples;
                 return _this.onResize(event);
             };
 
-            document.onmousedown = function (e) {
-                return _this.onMouseDown(e);
+            document.onmousedown = function (event) {
+                return _this.onMouseDown(event);
             };
-            document.onmouseup = function (e) {
-                return _this.onMouseUp(e);
+            document.onmouseup = function (event) {
+                return _this.onMouseUp(event);
             };
-            document.onmousemove = function (e) {
-                return _this.onMouseMove(e);
+            document.onmousemove = function (event) {
+                return _this.onMouseMove(event);
             };
-            document.onmousewheel = function (e) {
-                return _this.onMouseWheel(e);
+            document.onmousewheel = function (event) {
+                return _this.onMouseWheel(event);
             };
 
             this.onResize();
@@ -214,6 +214,9 @@ var examples;
             this._view.render();
         };
 
+        /**
+        * Listener function for resource complete event on asset library
+        */
         Basic_Shading.prototype.onResourceComplete = function (event) {
             var assets = event.assets;
             var length = assets.length;
@@ -286,14 +289,11 @@ var examples;
             }
         };
 
-        /**
-        * Mouse wheel listener
-        */
         Basic_Shading.prototype.onMouseWheel = function (event) {
             if (event.wheelDelta > 0) {
-                this._cameraController.distance += 10;
+                this._cameraController.distance += 20;
             } else {
-                this._cameraController.distance -= 10;
+                this._cameraController.distance -= 20;
             }
         };
 
