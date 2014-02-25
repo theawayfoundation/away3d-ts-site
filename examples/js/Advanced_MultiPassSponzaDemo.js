@@ -1,4 +1,4 @@
-///<reference path="../libs/Away3D.next.d.ts" />
+///<reference path="../libs/away3d.next.d.ts" />
 /*
 Crytek Sponza demo using multipass materials in Away3D
 Demonstrates:
