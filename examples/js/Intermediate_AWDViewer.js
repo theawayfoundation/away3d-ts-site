@@ -1,30 +1,21 @@
 ///<reference path="../libs/Away3D.next.d.ts" />
 /*
-
 AWD file loading example in Away3d
-
 Demonstrates:
-
 How to use the Loader3D object to load an embedded internal awd model.
-
 Code by Rob Bateman
 rob@infiniteturtles.co.uk
 http://www.infiniteturtles.co.uk
-
 This code is distributed under the MIT License
-
 Copyright (c) The Away Foundation http://www.theawayfoundation.org
-
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the “Software”), to deal
 in the Software without restriction, including without limitation the rights
 to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
-
 The above copyright notice and this permission notice shall be included in
 all copies or substantial portions of the Software.
-
 THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -32,24 +23,24 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-
 */
 var examples;
 (function (examples) {
     var SkeletonAnimator = away.animators.SkeletonAnimator;
     var SkeletonClipNode = away.animators.SkeletonClipNode;
     var CrossfadeTransition = away.animators.CrossfadeTransition;
-    var PerspectiveLens = away.cameras.PerspectiveLens;
-    var View3D = away.containers.View3D;
+    var PerspectiveProjection = away.projections.PerspectiveProjection;
+    var View = away.containers.View;
     var HoverController = away.controllers.HoverController;
     var AnimationStateEvent = away.events.AnimationStateEvent;
     var AssetEvent = away.events.AssetEvent;
     var Vector3D = away.geom.Vector3D;
     var AssetLibrary = away.library.AssetLibrary;
     var AssetType = away.library.AssetType;
-    var Loader3D = away.loaders.Loader3D;
-    var AWD2Parser = away.loaders.AWDParser;
+    var Loader3D = away.containers.Loader3D;
+    var AWD2Parser = away.parsers.AWDParser;
     var URLRequest = away.net.URLRequest;
+    var DefaultRenderer = away.render.DefaultRenderer;
     var Keyboard = away.ui.Keyboard;
     var RequestAnimationFrame = away.utils.RequestAnimationFrame;
 
@@ -76,13 +67,13 @@ var examples;
         */
         Intermediate_AWDViewer.prototype.initEngine = function () {
             //create the view
-            this._view = new View3D();
+            this._view = new View(new DefaultRenderer());
             this._view.backgroundColor = 0x333338;
 
             //create custom lens
-            this._view.camera.lens = new PerspectiveLens(70);
-            this._view.camera.lens.far = 5000;
-            this._view.camera.lens.near = 1;
+            this._view.camera.projection = new PerspectiveProjection(70);
+            this._view.camera.projection.far = 5000;
+            this._view.camera.projection.near = 1;
 
             //setup controller to be used on the camera
             this._cameraController = new HoverController(this._view.camera, null, 0, 0, 150, 10, 90);
@@ -102,7 +93,7 @@ var examples;
 
             //kickoff asset loading
             var loader = new Loader3D();
-            loader.addEventListener(AssetEvent.ASSET_COMPLETE, this.onAssetComplete, this);
+            loader.addEventListener(AssetEvent.ASSET_COMPLETE, away.utils.Delegate.create(this, this.onAssetComplete));
 
             loader.load(new URLRequest("assets/shambler.awd"));
 
@@ -155,7 +146,7 @@ var examples;
                     node.looping = true;
                 } else {
                     node.looping = false;
-                    node.addEventListener(AnimationStateEvent.PLAYBACK_COMPLETE, this.onPlaybackComplete, this);
+                    node.addEventListener(AnimationStateEvent.PLAYBACK_COMPLETE, away.utils.Delegate.create(this, this.onPlaybackComplete));
                 }
             }
         };
@@ -239,7 +230,7 @@ var examples;
 
             if (this._cameraController.distance < 100)
                 this._cameraController.distance = 100;
-else if (this._cameraController.distance > 2000)
+            else if (this._cameraController.distance > 2000)
                 this._cameraController.distance = 2000;
         };
 
