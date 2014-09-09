@@ -1,34 +1,53 @@
-///<reference path="../../../build/Away3D.next.d.ts" />
-//<reference path="../../../src/Away3D.ts" />
-var demos;
-(function (demos) {
+///<reference path="../../build/stagegl-core.next.d.ts" />
+var tests;
+(function (tests) {
     (function (lights) {
+        var View = away.containers.View;
+        var DirectionalLight = away.entities.DirectionalLight;
+
+        var Vector3D = away.geom.Vector3D;
+
+        var StaticLightPicker = away.materials.StaticLightPicker;
+        var TriangleMethodMaterial = away.materials.TriangleMethodMaterial;
+        var URLLoader = away.net.URLLoader;
+        var URLLoaderDataFormat = away.net.URLLoaderDataFormat;
+        var URLRequest = away.net.URLRequest;
+        var ParserUtils = away.parsers.ParserUtils;
+        var PrimitiveTorusPrefab = away.prefabs.PrimitiveTorusPrefab;
+        var PerspectiveProjection = away.projections.PerspectiveProjection;
+        var DefaultRenderer = away.render.DefaultRenderer;
+        var ImageTexture = away.textures.ImageTexture;
+        var RequestAnimationFrame = away.utils.RequestAnimationFrame;
+
         var TorusLight = (function () {
             function TorusLight() {
                 away.Debug.THROW_ERRORS = false;
                 away.Debug.ENABLE_LOG = false;
                 away.Debug.LOG_PI_ERRORS = false;
 
-                this._view = new away.containers.View(new away.render.DefaultRenderer());
-                this._view.backgroundColor = 0x014C73;
-                this._view.camera.projection = new away.projections.PerspectiveProjection(60);
-                this._torus = new away.primitives.TorusGeometry(120, 80, 32, 16, false);
+                this._view = new View(new DefaultRenderer());
+                this._view.camera.projection = new PerspectiveProjection(60);
+                this._torus = new PrimitiveTorusPrefab(220, 80, 32, 16, false);
 
                 this.loadResources();
             }
             TorusLight.prototype.loadResources = function () {
-                var urlRequest = new away.net.URLRequest("dots.png");
+                var _this = this;
+                var urlRequest = new URLRequest("assets/dots.png");
 
-                var urlLoader = new away.net.URLLoader();
-                urlLoader.dataFormat = away.net.URLLoaderDataFormat.BLOB;
-                urlLoader.addEventListener(away.events.Event.COMPLETE, away.utils.Delegate.create(this, this.imageCompleteHandler));
+                var urlLoader = new URLLoader();
+                urlLoader.dataFormat = URLLoaderDataFormat.BLOB;
+                urlLoader.addEventListener(away.events.Event.COMPLETE, function (event) {
+                    return _this.imageCompleteHandler(event);
+                });
                 urlLoader.load(urlRequest);
             };
 
-            TorusLight.prototype.imageCompleteHandler = function (e) {
+            TorusLight.prototype.imageCompleteHandler = function (event) {
                 var _this = this;
-                var imageLoader = e.target;
-                this._image = away.parsers.ParserUtils.blobToImage(imageLoader.data);
+                var imageLoader = event.target;
+
+                this._image = ParserUtils.blobToImage(imageLoader.data);
                 this._image.onload = function (event) {
                     return _this.onLoadComplete(event);
                 };
@@ -36,37 +55,34 @@ var demos;
 
             TorusLight.prototype.onLoadComplete = function (event) {
                 var _this = this;
-                this._view.camera.z = -1000;
-                var ts = new away.textures.ImageTexture(this._image, false);
+                var ts = new ImageTexture(this._image, false);
 
-                var light = new away.lights.DirectionalLight();
-                light.color = 0x00ff88;
-                light.direction = new away.geom.Vector3D(0, 0, 1);
-                light.ambient = 0.6;
+                var light = new DirectionalLight();
+                light.direction = new Vector3D(0, 0, 1);
                 light.diffuse = .7;
-                light.specular = 60;
+                light.specular = 1;
 
                 this._view.scene.addChild(light);
 
-                var lightPicker = new away.materials.StaticLightPicker([light]);
+                var lightPicker = new StaticLightPicker([light]);
 
-                var matTx = new away.materials.TextureMaterial(ts, true, true, false);
+                var matTx = new TriangleMethodMaterial(ts, true, true, false);
                 matTx.lightPicker = lightPicker;
 
-                this._mesh = new away.entities.Mesh(this._torus, matTx);
+                this._torus.material = matTx;
+
+                this._mesh = this._torus.getNewObject();
 
                 this._view.scene.addChild(this._mesh);
 
-                this._raf = new away.utils.RequestAnimationFrame(this.render, this);
+                this._raf = new RequestAnimationFrame(this.render, this);
                 this._raf.start();
 
-                window.onresize = function () {
-                    return _this.resize();
+                window.onresize = function (event) {
+                    return _this.resize(event);
                 };
 
                 this.resize();
-
-                this.render(0);
             };
 
             TorusLight.prototype.render = function (dt) {
@@ -75,7 +91,8 @@ var demos;
                 this._view.render();
             };
 
-            TorusLight.prototype.resize = function () {
+            TorusLight.prototype.resize = function (event) {
+                if (typeof event === "undefined") { event = null; }
                 this._view.y = 0;
                 this._view.x = 0;
 
@@ -85,7 +102,7 @@ var demos;
             return TorusLight;
         })();
         lights.TorusLight = TorusLight;
-    })(demos.lights || (demos.lights = {}));
-    var lights = demos.lights;
-})(demos || (demos = {}));
+    })(tests.lights || (tests.lights = {}));
+    var lights = tests.lights;
+})(tests || (tests = {}));
 //# sourceMappingURL=TorusLight.js.map

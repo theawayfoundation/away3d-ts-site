@@ -1,4 +1,4 @@
-﻿///<reference path="../libs/away3d.next.d.ts" />
+﻿///<reference path="../libs/stagegl-extensions.next.d.ts" />
 /*
 MD5 animation loading and interaction example in Away3d
 Demonstrates:
@@ -31,41 +31,39 @@ THE SOFTWARE.
 var examples;
 (function (examples) {
     var CrossfadeTransition = away.animators.CrossfadeTransition;
-    var Skeleton = away.animators.Skeleton;
-    var SkeletonAnimationSet = away.animators.SkeletonAnimationSet;
+
     var SkeletonAnimator = away.animators.SkeletonAnimator;
-    var SkeletonClipNode = away.animators.SkeletonClipNode;
+
     var DisplayObjectContainer = away.containers.DisplayObjectContainer;
-    var Scene = away.containers.Scene;
+
     var View = away.containers.View;
     var LookAtController = away.controllers.LookAtController;
     var Billboard = away.entities.Billboard;
-    var Camera = away.entities.Camera;
-    var Mesh = away.entities.Mesh;
+
     var Skybox = away.entities.Skybox;
     var AnimationStateEvent = away.events.AnimationStateEvent;
     var AssetEvent = away.events.AssetEvent;
-    var LoaderEvent = away.events.LoaderEvent;
+
+    var UVTransform = away.geom.UVTransform;
     var AssetLibrary = away.library.AssetLibrary;
+    var AssetLoaderContext = away.library.AssetLoaderContext;
     var AssetType = away.library.AssetType;
-    var PointLight = away.lights.PointLight;
-    var DirectionalLight = away.lights.DirectionalLight;
-    var NearDirectionalShadowMapper = away.lights.NearDirectionalShadowMapper;
+    var PointLight = away.entities.PointLight;
+    var DirectionalLight = away.entities.DirectionalLight;
+    var NearDirectionalShadowMapper = away.materials.NearDirectionalShadowMapper;
     var MD5AnimParser = away.parsers.MD5AnimParser;
     var MD5MeshParser = away.parsers.MD5MeshParser;
-    var PlaneGeometry = away.primitives.PlaneGeometry;
-    var FogMethod = away.materials.FogMethod;
+    var PrimitivePlanePrefab = away.prefabs.PrimitivePlanePrefab;
+    var EffectFogMethod = away.materials.EffectFogMethod;
+    var SkyboxMaterial = away.materials.SkyboxMaterial;
     var StaticLightPicker = away.materials.StaticLightPicker;
-    var TextureMaterial = away.materials.TextureMaterial;
-    var SoftShadowMapMethod = away.materials.SoftShadowMapMethod;
-    var NearShadowMapMethod = away.materials.NearShadowMapMethod;
+    var TriangleMethodMaterial = away.materials.TriangleMethodMaterial;
+    var ShadowSoftMethod = away.materials.ShadowSoftMethod;
+    var ShadowNearMethod = away.materials.ShadowNearMethod;
     var URLRequest = away.net.URLRequest;
     var DefaultRenderer = away.render.DefaultRenderer;
-    var ImageCubeTexture = away.textures.ImageCubeTexture;
-    var ImageTexture = away.textures.ImageTexture;
+
     var Keyboard = away.ui.Keyboard;
-    var Cast = away.utils.Cast;
-    var RequestAnimationFrame = away.utils.RequestAnimationFrame;
 
     var Intermediate_MD5Animation = (function () {
         /**
@@ -128,7 +126,7 @@ var examples;
         //			addChild(text);
         //		}
         /**
-        * Initialise the lights
+        * Initialise the entities
         */
         Intermediate_MD5Animation.prototype.initLights = function () {
             //create a light for shadows that mimics the sun's position in the skybox
@@ -157,11 +155,11 @@ var examples;
             this.lightPicker = new StaticLightPicker([this.redLight, this.blueLight, this.whiteLight]);
 
             //create a global shadow method
-            this.shadowMapMethod = new NearShadowMapMethod(new SoftShadowMapMethod(this.whiteLight, 15, 8));
+            this.shadowMapMethod = new ShadowNearMethod(new ShadowSoftMethod(this.whiteLight, 15, 8));
             this.shadowMapMethod.epsilon = .1;
 
             //create a global fog method
-            this.fogMethod = new FogMethod(0, this.camera.projection.far * 0.5, 0x000000);
+            this.fogMethod = new EffectFogMethod(0, this.camera.projection.far * 0.5, 0x000000);
         };
 
         /**
@@ -169,38 +167,38 @@ var examples;
         */
         Intermediate_MD5Animation.prototype.initMaterials = function () {
             //red light material
-            this.redLightMaterial = new TextureMaterial();
+            this.redLightMaterial = new TriangleMethodMaterial();
             this.redLightMaterial.alphaBlending = true;
-            this.redLightMaterial.addMethod(this.fogMethod);
+            this.redLightMaterial.addEffectMethod(this.fogMethod);
 
             //blue light material
-            this.blueLightMaterial = new TextureMaterial();
+            this.blueLightMaterial = new TriangleMethodMaterial();
             this.blueLightMaterial.alphaBlending = true;
-            this.blueLightMaterial.addMethod(this.fogMethod);
+            this.blueLightMaterial.addEffectMethod(this.fogMethod);
 
             //ground material
-            this.groundMaterial = new TextureMaterial();
+            this.groundMaterial = new TriangleMethodMaterial();
             this.groundMaterial.smooth = true;
             this.groundMaterial.repeat = true;
             this.groundMaterial.lightPicker = this.lightPicker;
             this.groundMaterial.shadowMethod = this.shadowMapMethod;
-            this.groundMaterial.addMethod(this.fogMethod);
+            this.groundMaterial.addEffectMethod(this.fogMethod);
 
             //body material
-            this.bodyMaterial = new TextureMaterial();
+            this.bodyMaterial = new TriangleMethodMaterial();
             this.bodyMaterial.gloss = 20;
             this.bodyMaterial.specular = 1.5;
-            this.bodyMaterial.addMethod(this.fogMethod);
+            this.bodyMaterial.addEffectMethod(this.fogMethod);
             this.bodyMaterial.lightPicker = this.lightPicker;
             this.bodyMaterial.shadowMethod = this.shadowMapMethod;
 
             //gob material
-            this.gobMaterial = new TextureMaterial();
+            this.gobMaterial = new TriangleMethodMaterial();
             this.gobMaterial.alphaBlending = true;
             this.gobMaterial.smooth = true;
             this.gobMaterial.repeat = true;
             this.gobMaterial.animateUVs = true;
-            this.gobMaterial.addMethod(this.fogMethod);
+            this.gobMaterial.addEffectMethod(this.fogMethod);
             this.gobMaterial.lightPicker = this.lightPicker;
             this.gobMaterial.shadowMethod = this.shadowMapMethod;
         };
@@ -210,9 +208,13 @@ var examples;
         */
         Intermediate_MD5Animation.prototype.initObjects = function () {
             //create light billboards
-            var redSprite = new Billboard(this.redLightMaterial, 200, 200);
+            var redSprite = new Billboard(this.redLightMaterial);
+            redSprite.width = 200;
+            redSprite.height = 200;
             redSprite.castsShadows = false;
-            var blueSprite = new Billboard(this.blueLightMaterial, 200, 200);
+            var blueSprite = new Billboard(this.blueLightMaterial);
+            blueSprite.width = 200;
+            blueSprite.height = 200;
             blueSprite.castsShadows = false;
             this.redLight.addChild(redSprite);
             this.blueLight.addChild(blueSprite);
@@ -221,7 +223,8 @@ var examples;
             AssetLibrary.enableParser(MD5AnimParser);
 
             //create a rocky ground plane
-            this.ground = new Mesh(new PlaneGeometry(50000, 50000, 1, 1), this.groundMaterial);
+            this.ground = new PrimitivePlanePrefab(50000, 50000, 1, 1).getNewObject();
+            this.ground.material = this.groundMaterial;
             this.ground.geometry.scaleUV(200, 200);
             this.ground.castsShadows = false;
             this.scene.addChild(this.ground);
@@ -248,7 +251,7 @@ var examples;
             this._timer.start();
 
             //setup the url map for textures in the cubemap file
-            var assetLoaderContext = new away.net.AssetLoaderContext();
+            var assetLoaderContext = new AssetLoaderContext();
             assetLoaderContext.dependencyBaseUrl = "assets/skybox/";
 
             //load hellknight mesh
@@ -337,6 +340,7 @@ var examples;
                 this.mesh.subMeshes[1].material = this.mesh.subMeshes[2].material = this.mesh.subMeshes[3].material = this.gobMaterial;
                 this.mesh.castsShadows = true;
                 this.mesh.rotationY = 180;
+                this.mesh.subMeshes[1].uvTransform = this.mesh.subMeshes[2].uvTransform = this.mesh.subMeshes[3].uvTransform = new UVTransform();
                 this.scene.addChild(this.mesh);
 
                 //add our lookat object to the mesh
@@ -352,8 +356,8 @@ var examples;
                 case 'assets/skybox/grimnight_texture.cube':
                     this.cubeTexture = event.assets[0];
 
-                    this.skyBox = new Skybox(this.cubeTexture);
-                    this.scene.addChild(this.skyBox);
+                    this.skyBox = new Skybox(new SkyboxMaterial(this.cubeTexture));
+
                     break;
 
                 case "assets/redlight.png":

@@ -1,4 +1,4 @@
-///<reference path="../libs/away3d.next.d.ts" />
+///<reference path="../libs/stagegl-extensions.next.d.ts" />
 /*
 SkyBox example in Away3d
 Demonstrates:
@@ -27,6 +27,23 @@ THE SOFTWARE.
 */
 var examples;
 (function (examples) {
+    var View = away.containers.View;
+
+    var Skybox = away.entities.Skybox;
+    var LoaderEvent = away.events.LoaderEvent;
+    var Vector3D = away.geom.Vector3D;
+    var AssetLibrary = away.library.AssetLibrary;
+    var AssetLoaderContext = away.library.AssetLoaderContext;
+    var EffectEnvMapMethod = away.materials.EffectEnvMapMethod;
+    var SkyboxMaterial = away.materials.SkyboxMaterial;
+    var TriangleMethodMaterial = away.materials.TriangleMethodMaterial;
+    var URLRequest = away.net.URLRequest;
+    var PrimitiveTorusPrefab = away.prefabs.PrimitiveTorusPrefab;
+    var PerspectiveProjection = away.projections.PerspectiveProjection;
+    var DefaultRenderer = away.render.DefaultRenderer;
+
+    var RequestAnimationFrame = away.utils.RequestAnimationFrame;
+
     var Basic_SkyBox = (function () {
         /**
         * Constructor
@@ -50,13 +67,13 @@ var examples;
         */
         Basic_SkyBox.prototype.initEngine = function () {
             //setup the view
-            this._view = new away.containers.View(new away.render.DefaultRenderer());
+            this._view = new View(new DefaultRenderer());
 
             //setup the camera
             this._view.camera.z = -600;
             this._view.camera.y = 0;
-            this._view.camera.lookAt(new away.geom.Vector3D());
-            this._view.camera.projection = new away.projections.PerspectiveProjection(90);
+            this._view.camera.lookAt(new Vector3D());
+            this._view.camera.projection = new PerspectiveProjection(90);
             this._view.backgroundColor = 0xFFFF00;
             this._mouseX = window.innerWidth / 2;
         };
@@ -66,10 +83,10 @@ var examples;
         */
         Basic_SkyBox.prototype.initMaterials = function () {
             //setup the torus material
-            this._torusMaterial = new away.materials.ColorMaterial(0xFFFFFF, 1);
+            this._torusMaterial = new TriangleMethodMaterial(0xFFFFFF, 1);
             this._torusMaterial.specular = 0.5;
             this._torusMaterial.ambient = 0.25;
-            this._torusMaterial.ambientColor = 0x111199;
+            this._torusMaterial.color = 0x111199;
             this._torusMaterial.ambient = 1;
         };
 
@@ -77,7 +94,8 @@ var examples;
         * Initialise the scene objects
         */
         Basic_SkyBox.prototype.initObjects = function () {
-            this._torus = new away.entities.Mesh(new away.primitives.TorusGeometry(150, 60, 40, 20), this._torusMaterial);
+            this._torus = new PrimitiveTorusPrefab(150, 60, 40, 20).getNewObject();
+            this._torus.material = this._torusMaterial;
             this._view.scene.addChild(this._torus);
         };
 
@@ -96,17 +114,19 @@ var examples;
 
             this.onResize();
 
-            this._timer = new away.utils.RequestAnimationFrame(this.onEnterFrame, this);
+            this._timer = new RequestAnimationFrame(this.onEnterFrame, this);
             this._timer.start();
 
-            away.library.AssetLibrary.addEventListener(away.events.LoaderEvent.RESOURCE_COMPLETE, away.utils.Delegate.create(this, this.onResourceComplete));
+            AssetLibrary.addEventListener(LoaderEvent.RESOURCE_COMPLETE, function (event) {
+                return _this.onResourceComplete(event);
+            });
 
             //setup the url map for textures in the cubemap file
-            var assetLoaderContext = new away.net.AssetLoaderContext();
+            var assetLoaderContext = new AssetLoaderContext();
             assetLoaderContext.dependencyBaseUrl = "assets/skybox/";
 
             //environment texture
-            away.library.AssetLibrary.load(new away.net.URLRequest("assets/skybox/snow_texture.cube"), assetLoaderContext);
+            AssetLibrary.load(new URLRequest("assets/skybox/snow_texture.cube"), assetLoaderContext);
         };
 
         /**
@@ -130,10 +150,10 @@ var examples;
                 case 'assets/skybox/snow_texture.cube':
                     this._cubeTexture = event.assets[0];
 
-                    this._skyBox = new away.entities.Skybox(this._cubeTexture);
+                    this._skyBox = new Skybox(new SkyboxMaterial(this._cubeTexture));
                     this._view.scene.addChild(this._skyBox);
 
-                    this._torusMaterial.addMethod(new away.materials.EnvMapMethod(this._cubeTexture, 1));
+                    this._torusMaterial.addEffectMethod(new EffectEnvMapMethod(this._cubeTexture, 1));
 
                     break;
             }

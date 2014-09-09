@@ -1,4 +1,4 @@
-///<reference path="../libs/away3d.next.d.ts" />
+///<reference path="../libs/stagegl-extensions.next.d.ts" />
 /*
 Basic 3D scene example in Away3D
 Demonstrates:
@@ -28,6 +28,21 @@ THE SOFTWARE.
 */
 var examples;
 (function (examples) {
+    var View = away.containers.View;
+
+    var LoaderEvent = away.events.LoaderEvent;
+    var Vector3D = away.geom.Vector3D;
+    var AssetLibrary = away.library.AssetLibrary;
+
+    var TriangleMethodMaterial = away.materials.TriangleMethodMaterial;
+    var URLRequest = away.net.URLRequest;
+    var PrimitivePlanePrefab = away.prefabs.PrimitivePlanePrefab;
+
+    var DefaultRenderer = away.render.DefaultRenderer;
+    var ContextGLProfile = away.stagegl.ContextGLProfile;
+
+    var RequestAnimationFrame = away.utils.RequestAnimationFrame;
+
     var Basic_View = (function () {
         /**
         * Constructor
@@ -35,18 +50,19 @@ var examples;
         function Basic_View() {
             var _this = this;
             //setup the view
-            this._view = new away.containers.View(new away.render.DefaultRenderer());
+            this._view = new View(new DefaultRenderer(false, ContextGLProfile.BASELINE));
 
             //setup the camera
             this._view.camera.z = -600;
             this._view.camera.y = 500;
-            this._view.camera.lookAt(new away.geom.Vector3D());
+            this._view.camera.lookAt(new Vector3D());
 
             //setup the materials
-            this._planeMaterial = new away.materials.TextureMaterial();
+            this._planeMaterial = new TriangleMethodMaterial();
 
             //setup the scene
-            this._plane = new away.entities.Mesh(new away.primitives.PlaneGeometry(700, 700), this._planeMaterial);
+            this._plane = new PrimitivePlanePrefab(700, 700).getNewObject();
+            this._plane.material = this._planeMaterial;
             this._view.scene.addChild(this._plane);
 
             //setup the render loop
@@ -56,15 +72,15 @@ var examples;
 
             this.onResize();
 
-            this._timer = new away.utils.RequestAnimationFrame(this.onEnterFrame, this);
+            this._timer = new RequestAnimationFrame(this.onEnterFrame, this);
             this._timer.start();
 
-            away.library.AssetLibrary.addEventListener(away.events.LoaderEvent.RESOURCE_COMPLETE, function (event) {
+            AssetLibrary.addEventListener(LoaderEvent.RESOURCE_COMPLETE, function (event) {
                 return _this.onResourceComplete(event);
             });
 
             //plane textures
-            away.library.AssetLibrary.load(new away.net.URLRequest("assets/floor_diffuse.jpg"));
+            AssetLibrary.load(new URLRequest("assets/floor_diffuse.jpg"));
         }
         /**
         * render loop
@@ -89,7 +105,7 @@ var examples;
 
                 switch (event.url) {
                     case "assets/floor_diffuse.jpg":
-                        this._planeMaterial.texture = away.library.AssetLibrary.getAsset(asset.name);
+                        this._planeMaterial.texture = asset;
                         break;
                 }
             }

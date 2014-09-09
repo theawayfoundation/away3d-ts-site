@@ -1,4 +1,4 @@
-///<reference path="../libs/away3d.next.d.ts" />
+///<reference path="../libs/stagegl-extensions.next.d.ts" />
 /*
 Globe example in Away3d
 Demonstrates:
@@ -38,34 +38,30 @@ var examples;
     var BlendMode = away.base.BlendMode;
     var OrientationMode = away.base.OrientationMode;
     var AlignmentMode = away.base.AlignmentMode;
-    var Mesh = away.entities.Mesh;
+
     var Billboard = away.entities.Billboard;
     var Skybox = away.entities.Skybox;
-    var LoaderEvent = away.events.LoaderEvent;
+
     var ColorTransform = away.geom.ColorTransform;
     var Vector3D = away.geom.Vector3D;
     var Point = away.geom.Point;
-    var PointLight = away.lights.PointLight;
-    var CompositeDiffuseMethod = away.materials.CompositeDiffuseMethod;
-    var CompositeSpecularMethod = away.materials.CompositeSpecularMethod;
-    var ColorMaterial = away.materials.ColorMaterial;
-    var BasicDiffuseMethod = away.materials.BasicDiffuseMethod;
-    var BasicSpecularMethod = away.materials.BasicSpecularMethod;
-    var MethodVO = away.materials.MethodVO;
-    var FresnelSpecularMethod = away.materials.FresnelSpecularMethod;
-    var PhongSpecularMethod = away.materials.PhongSpecularMethod;
-    var ShaderRegisterElement = away.materials.ShaderRegisterElement;
-    var ShaderRegisterCache = away.materials.ShaderRegisterCache;
-    var ShaderRegisterData = away.materials.ShaderRegisterData;
+    var PointLight = away.entities.PointLight;
+    var AssetLibrary = away.library.AssetLibrary;
+    var AssetLoaderContext = away.library.AssetLoaderContext;
+    var DiffuseCompositeMethod = away.materials.DiffuseCompositeMethod;
+    var SpecularCompositeMethod = away.materials.SpecularCompositeMethod;
+
+    var SkyboxMaterial = away.materials.SkyboxMaterial;
+    var SpecularFresnelMethod = away.materials.SpecularFresnelMethod;
+    var SpecularPhongMethod = away.materials.SpecularPhongMethod;
+
     var StaticLightPicker = away.materials.StaticLightPicker;
-    var TextureMaterial = away.materials.TextureMaterial;
-    var SphereGeometry = away.primitives.SphereGeometry;
+    var TriangleMethodMaterial = away.materials.TriangleMethodMaterial;
+    var PrimitiveSpherePrefab = away.prefabs.PrimitiveSpherePrefab;
     var DefaultRenderer = away.render.DefaultRenderer;
-    var ImageCubeTexture = away.textures.ImageCubeTexture;
-    var ImageTexture = away.textures.ImageTexture;
+
     var BitmapTexture = away.textures.BitmapTexture;
     var Cast = away.utils.Cast;
-    var RequestAnimationFrame = away.utils.RequestAnimationFrame;
 
     var Intermediate_Globe = (function () {
         /**
@@ -149,58 +145,59 @@ var examples;
             //adjust specular map
             //var specBitmap:BitmapData = Cast.bitmapData(EarthSpecular);
             //specBitmap.colorTransform(specBitmap.rect, new ColorTransform(1, 1, 1, 1, 64, 64, 64));
-            var specular = new FresnelSpecularMethod(true, new PhongSpecularMethod());
+            var specular = new SpecularFresnelMethod(true, new SpecularPhongMethod());
             specular.fresnelPower = 1;
             specular.normalReflectance = 0.1;
 
-            this.sunMaterial = new TextureMaterial();
+            this.sunMaterial = new TriangleMethodMaterial();
             this.sunMaterial.blendMode = BlendMode.ADD;
 
-            this.groundMaterial = new TextureMaterial();
+            this.groundMaterial = new TriangleMethodMaterial();
             this.groundMaterial.specularMethod = specular;
             this.groundMaterial.lightPicker = this.lightPicker;
             this.groundMaterial.gloss = 5;
             this.groundMaterial.specular = 1;
-            this.groundMaterial.ambientColor = 0xFFFFFF;
             this.groundMaterial.ambient = 1;
+            this.groundMaterial.diffuseMethod.multiply = false;
 
-            this.cloudMaterial = new TextureMaterial();
+            this.cloudMaterial = new TriangleMethodMaterial();
             this.cloudMaterial.alphaBlending = true;
             this.cloudMaterial.lightPicker = this.lightPicker;
-            this.cloudMaterial.specular = 0;
             this.cloudMaterial.ambientColor = 0x1b2048;
+            this.cloudMaterial.specular = 0;
             this.cloudMaterial.ambient = 1;
 
-            this.atmosphereDiffuseMethod = new CompositeDiffuseMethod(this, this.modulateDiffuseMethod);
-            this.atmosphereSpecularMethod = new CompositeSpecularMethod(this, this.modulateSpecularMethod, new PhongSpecularMethod());
+            this.atmosphereDiffuseMethod = new DiffuseCompositeMethod(this.modulateDiffuseMethod);
+            this.atmosphereSpecularMethod = new SpecularCompositeMethod(this.modulateSpecularMethod, new SpecularPhongMethod());
 
-            this.atmosphereMaterial = new ColorMaterial(0x1671cc);
+            this.atmosphereMaterial = new TriangleMethodMaterial();
             this.atmosphereMaterial.diffuseMethod = this.atmosphereDiffuseMethod;
             this.atmosphereMaterial.specularMethod = this.atmosphereSpecularMethod;
             this.atmosphereMaterial.blendMode = BlendMode.ADD;
             this.atmosphereMaterial.lightPicker = this.lightPicker;
             this.atmosphereMaterial.specular = 0.5;
             this.atmosphereMaterial.gloss = 5;
-            this.atmosphereMaterial.ambientColor = 0x0;
+            this.atmosphereMaterial.ambientColor = 0;
+            this.atmosphereMaterial.diffuseColor = 0x1671cc;
             this.atmosphereMaterial.ambient = 1;
         };
 
-        Intermediate_Globe.prototype.modulateDiffuseMethod = function (vo, t, regCache, sharedRegisters) {
-            var viewDirFragmentReg = this.atmosphereDiffuseMethod._sharedRegisters.viewDirFragment;
-            var normalFragmentReg = this.atmosphereDiffuseMethod._sharedRegisters.normalFragment;
+        Intermediate_Globe.prototype.modulateDiffuseMethod = function (shaderObject, methodVO, targetReg, regCache, sharedRegisters) {
+            var viewDirFragmentReg = sharedRegisters.viewDirFragment;
+            var normalFragmentReg = sharedRegisters.normalFragment;
 
-            var code = "dp3 " + t + ".w, " + viewDirFragmentReg + ".xyz, " + normalFragmentReg + ".xyz\n" + "mul " + t + ".w, " + t + ".w, " + t + ".w\n";
+            var code = "dp3 " + targetReg + ".w, " + viewDirFragmentReg + ".xyz, " + normalFragmentReg + ".xyz\n" + "mul " + targetReg + ".w, " + targetReg + ".w, " + targetReg + ".w\n";
 
             return code;
         };
 
-        Intermediate_Globe.prototype.modulateSpecularMethod = function (vo, t, regCache, sharedRegisters) {
-            var viewDirFragmentReg = this.atmosphereDiffuseMethod._sharedRegisters.viewDirFragment;
-            var normalFragmentReg = this.atmosphereDiffuseMethod._sharedRegisters.normalFragment;
+        Intermediate_Globe.prototype.modulateSpecularMethod = function (shaderObject, methodVO, targetReg, regCache, sharedRegisters) {
+            var viewDirFragmentReg = sharedRegisters.viewDirFragment;
+            var normalFragmentReg = sharedRegisters.normalFragment;
             var temp = regCache.getFreeFragmentSingleTemp();
             regCache.addFragmentTempUsages(temp, 1);
 
-            var code = "dp3 " + temp + ", " + viewDirFragmentReg + ".xyz, " + normalFragmentReg + ".xyz\n" + "neg " + temp + ", " + temp + "\n" + "mul " + t + ".w, " + t + ".w, " + temp + "\n";
+            var code = "dp3 " + temp + ", " + viewDirFragmentReg + ".xyz, " + normalFragmentReg + ".xyz\n" + "neg " + temp + ", " + temp + "\n" + "mul " + targetReg + ".w, " + targetReg + ".w, " + temp + "\n";
 
             regCache.removeFragmentTempUsage(temp);
 
@@ -215,17 +212,23 @@ var examples;
             this.orbitContainer.addChild(this.light);
             this.scene.addChild(this.orbitContainer);
 
-            this.sun = new Billboard(this.sunMaterial, 3000, 3000);
+            this.sun = new Billboard(this.sunMaterial);
+            this.sun.width = 3000;
+            this.sun.height = 3000;
+            this.sun.pivot = new Vector3D(1500, 1500, 0);
             this.sun.orientationMode = OrientationMode.CAMERA_PLANE;
             this.sun.alignmentMode = AlignmentMode.PIVOT_POINT;
             this.sun.x = 10000;
             this.orbitContainer.addChild(this.sun);
 
-            this.earth = new Mesh(new SphereGeometry(200, 200, 100), this.groundMaterial);
+            this.earth = new PrimitiveSpherePrefab(200, 200, 100).getNewObject();
+            this.earth.material = this.groundMaterial;
 
-            this.clouds = new Mesh(new SphereGeometry(202, 200, 100), this.cloudMaterial);
+            this.clouds = new PrimitiveSpherePrefab(202, 200, 100).getNewObject();
+            this.clouds.material = this.cloudMaterial;
 
-            this.atmosphere = new Mesh(new SphereGeometry(210, 200, 100), this.atmosphereMaterial);
+            this.atmosphere = new PrimitiveSpherePrefab(210, 200, 100).getNewObject();
+            this.atmosphere.material = this.atmosphereMaterial;
             this.atmosphere.scaleX = -1;
 
             this.tiltContainer = new DisplayObjectContainer();
@@ -266,32 +269,32 @@ var examples;
             this._timer = new away.utils.RequestAnimationFrame(this.onEnterFrame, this);
             this._timer.start();
 
-            away.library.AssetLibrary.addEventListener(away.events.LoaderEvent.RESOURCE_COMPLETE, away.utils.Delegate.create(this, this.onResourceComplete));
+            AssetLibrary.addEventListener(away.events.LoaderEvent.RESOURCE_COMPLETE, away.utils.Delegate.create(this, this.onResourceComplete));
 
             //setup the url map for textures in the cubemap file
-            var assetLoaderContext = new away.net.AssetLoaderContext();
+            var assetLoaderContext = new AssetLoaderContext();
             assetLoaderContext.dependencyBaseUrl = "assets/skybox/";
 
             //environment texture
-            away.library.AssetLibrary.load(new away.net.URLRequest("assets/skybox/space_texture.cube"), assetLoaderContext);
+            AssetLibrary.load(new away.net.URLRequest("assets/skybox/space_texture.cube"), assetLoaderContext);
 
             //globe textures
-            away.library.AssetLibrary.load(new away.net.URLRequest("assets/globe/cloud_combined_2048.jpg"));
-            away.library.AssetLibrary.load(new away.net.URLRequest("assets/globe/earth_specular_2048.jpg"));
-            away.library.AssetLibrary.load(new away.net.URLRequest("assets/globe/EarthNormal.png"));
-            away.library.AssetLibrary.load(new away.net.URLRequest("assets/globe/land_lights_16384.jpg"));
-            away.library.AssetLibrary.load(new away.net.URLRequest("assets/globe/land_ocean_ice_2048_match.jpg"));
+            AssetLibrary.load(new away.net.URLRequest("assets/globe/cloud_combined_2048.jpg"));
+            AssetLibrary.load(new away.net.URLRequest("assets/globe/earth_specular_2048.jpg"));
+            AssetLibrary.load(new away.net.URLRequest("assets/globe/EarthNormal.png"));
+            AssetLibrary.load(new away.net.URLRequest("assets/globe/land_lights_16384.jpg"));
+            AssetLibrary.load(new away.net.URLRequest("assets/globe/land_ocean_ice_2048_match.jpg"));
 
             //flare textures
-            away.library.AssetLibrary.load(new away.net.URLRequest("assets/lensflare/flare2.jpg"));
-            away.library.AssetLibrary.load(new away.net.URLRequest("assets/lensflare/flare3.jpg"));
-            away.library.AssetLibrary.load(new away.net.URLRequest("assets/lensflare/flare4.jpg"));
-            away.library.AssetLibrary.load(new away.net.URLRequest("assets/lensflare/flare6.jpg"));
-            away.library.AssetLibrary.load(new away.net.URLRequest("assets/lensflare/flare7.jpg"));
-            away.library.AssetLibrary.load(new away.net.URLRequest("assets/lensflare/flare8.jpg"));
-            away.library.AssetLibrary.load(new away.net.URLRequest("assets/lensflare/flare10.jpg"));
-            away.library.AssetLibrary.load(new away.net.URLRequest("assets/lensflare/flare11.jpg"));
-            away.library.AssetLibrary.load(new away.net.URLRequest("assets/lensflare/flare12.jpg"));
+            AssetLibrary.load(new away.net.URLRequest("assets/lensflare/flare2.jpg"));
+            AssetLibrary.load(new away.net.URLRequest("assets/lensflare/flare3.jpg"));
+            AssetLibrary.load(new away.net.URLRequest("assets/lensflare/flare4.jpg"));
+            AssetLibrary.load(new away.net.URLRequest("assets/lensflare/flare6.jpg"));
+            AssetLibrary.load(new away.net.URLRequest("assets/lensflare/flare7.jpg"));
+            AssetLibrary.load(new away.net.URLRequest("assets/lensflare/flare8.jpg"));
+            AssetLibrary.load(new away.net.URLRequest("assets/lensflare/flare10.jpg"));
+            AssetLibrary.load(new away.net.URLRequest("assets/lensflare/flare11.jpg"));
+            AssetLibrary.load(new away.net.URLRequest("assets/lensflare/flare12.jpg"));
         };
 
         /**
@@ -352,7 +355,7 @@ var examples;
                 case 'assets/skybox/space_texture.cube':
                     this.cubeTexture = event.assets[0];
 
-                    this.skyBox = new Skybox(this.cubeTexture);
+                    this.skyBox = new Skybox(new SkyboxMaterial(this.cubeTexture));
                     this.scene.addChild(this.skyBox);
                     break;
 
@@ -371,10 +374,10 @@ var examples;
                     this.groundMaterial.normalMap = event.assets[0];
                     break;
                 case "assets/globe/land_lights_16384.jpg":
-                    this.groundMaterial.ambientTexture = event.assets[0];
+                    this.groundMaterial.texture = event.assets[0];
                     break;
                 case "assets/globe/land_ocean_ice_2048_match.jpg":
-                    this.groundMaterial.texture = event.assets[0];
+                    this.groundMaterial.diffuseTexture = event.assets[0];
                     break;
 
                 case "assets/lensflare/flare2.jpg":
@@ -476,11 +479,7 @@ var examples;
         * Mouse wheel listener for navigation
         */
         Intermediate_Globe.prototype.onMouseWheel = function (event) {
-            if (event.wheelDelta > 0) {
-                this.cameraController.distance -= 20;
-            } else {
-                this.cameraController.distance += 20;
-            }
+            this.cameraController.distance -= event.wheelDelta;
 
             if (this.cameraController.distance < 400)
                 this.cameraController.distance = 400;
@@ -532,7 +531,8 @@ var OrientationMode = away.base.OrientationMode;
 var AlignmentMode = away.base.AlignmentMode;
 var Billboard = away.entities.Billboard;
 var Point = away.geom.Point;
-var TextureMaterial = away.materials.TextureMaterial;
+var Vector3D = away.geom.Vector3D;
+var TriangleMethodMaterial = away.materials.TriangleMethodMaterial;
 var BitmapTexture = away.textures.BitmapTexture;
 var Cast = away.utils.Cast;
 
@@ -545,12 +545,15 @@ var FlareObject = (function () {
         var bd = new BitmapData(bitmapData.width, bitmapData.height, true, 0xFFFFFFFF);
         bd.copyChannel(bitmapData, bitmapData.rect, new Point(), BitmapDataChannel.RED, BitmapDataChannel.ALPHA);
 
-        var billboardMaterial = new TextureMaterial(new BitmapTexture(bd, false));
+        var billboardMaterial = new TriangleMethodMaterial(new BitmapTexture(bd, false));
         billboardMaterial.alpha = opacity / 100;
         billboardMaterial.alphaBlending = true;
 
         //billboardMaterial.blendMode = BlendMode.LAYER;
-        this.billboard = new Billboard(billboardMaterial, size * this.flareSize, size * this.flareSize);
+        this.billboard = new Billboard(billboardMaterial);
+        this.billboard.width = size * this.flareSize;
+        this.billboard.height = size * this.flareSize;
+        this.billboard.pivot = new Vector3D(size * this.flareSize / 2, size * this.flareSize / 2, 0);
         this.billboard.orientationMode = OrientationMode.CAMERA_PLANE;
         this.billboard.alignmentMode = AlignmentMode.PIVOT_POINT;
         this.billboard.visible = false;

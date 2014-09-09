@@ -1,4 +1,4 @@
-///<reference path="../libs/away3d.next.d.ts" />
+///<reference path="../libs/stagegl-extensions.next.d.ts" />
 /*
 AWD file loading example in Away3d
 Demonstrates:
@@ -28,6 +28,20 @@ THE SOFTWARE.
 */
 var examples;
 (function (examples) {
+    var View = away.containers.View;
+
+    var AssetEvent = away.events.AssetEvent;
+    var Vector3D = away.geom.Vector3D;
+    var AssetLibrary = away.library.AssetLibrary;
+    var AssetType = away.library.AssetType;
+
+    var DirectionalLight = away.entities.DirectionalLight;
+    var StaticLightPicker = away.materials.StaticLightPicker;
+
+    var URLRequest = away.net.URLRequest;
+    var DefaultRenderer = away.render.DefaultRenderer;
+    var RequestAnimationFrame = away.utils.RequestAnimationFrame;
+
     var Basic_LoadAWD = (function () {
         /**
         * Constructor
@@ -51,7 +65,7 @@ var examples;
         * Initialise the engine
         */
         Basic_LoadAWD.prototype.initEngine = function () {
-            this._view = new away.containers.View(new away.render.DefaultRenderer());
+            this._view = new View(new DefaultRenderer());
 
             //set the background of the view to something suitable
             this._view.backgroundColor = 0x1e2125;
@@ -61,21 +75,21 @@ var examples;
         };
 
         /**
-        * Initialise the lights
+        * Initialise the entities
         */
         Basic_LoadAWD.prototype.initLights = function () {
             //create the light for the scene
-            this._light = new away.lights.DirectionalLight();
+            this._light = new DirectionalLight();
             this._light.color = 0x683019;
-            this._light.direction = new away.geom.Vector3D(1, 0, 0);
+            this._light.direction = new Vector3D(1, 0, 0);
             this._light.ambient = 0.5;
             this._light.ambientColor = 0x30353b;
             this._light.diffuse = 2.8;
             this._light.specular = 1.8;
             this._view.scene.addChild(this._light);
 
-            //create the lightppicker for the material
-            this._lightPicker = new away.materials.StaticLightPicker([this._light]);
+            //create the light picker for the material
+            this._lightPicker = new StaticLightPicker([this._light]);
         };
 
         /**
@@ -88,7 +102,6 @@ var examples;
         * Initialise the scene objects
         */
         Basic_LoadAWD.prototype.initObjects = function () {
-            this._view.scene.addChild(new away.entities.Mesh(new away.primitives.SphereGeometry(0)));
         };
 
         /**
@@ -102,16 +115,15 @@ var examples;
 
             this.onResize();
 
-            this._timer = new away.utils.RequestAnimationFrame(this.onEnterFrame, this);
+            this._timer = new RequestAnimationFrame(this.onEnterFrame, this);
             this._timer.start();
 
-            away.library.AssetLibrary.enableParser(away.parsers.AWDParser);
+            AssetLibrary.enableParser(away.parsers.AWDParser);
 
-            away.library.AssetLibrary.addEventListener(away.events.AssetEvent.ASSET_COMPLETE, function (event) {
+            AssetLibrary.addEventListener(AssetEvent.ASSET_COMPLETE, function (event) {
                 return _this.onAssetComplete(event);
             });
-
-            away.library.AssetLibrary.load(new away.net.URLRequest('assets/suzanne.awd'));
+            AssetLibrary.load(new URLRequest('assets/suzanne.awd'));
         };
 
         /**
@@ -133,24 +145,17 @@ var examples;
             var asset = event.asset;
 
             switch (asset.assetType) {
-                case away.library.AssetType.MESH:
+                case AssetType.MESH:
                     var mesh = asset;
                     mesh.y = -300;
-                    mesh.transform.scale = new away.geom.Vector3D(900, 900, 900);
+                    mesh.transform.scale = new Vector3D(900, 900, 900);
 
                     this._suzanne = mesh;
                     this._view.scene.addChild(mesh);
-
                     break;
-
-                case away.library.AssetType.GEOMETRY:
-                    break;
-
-                case away.library.AssetType.MATERIAL:
-                    //*
+                case AssetType.MATERIAL:
                     var material = asset;
                     material.lightPicker = this._lightPicker;
-
                     break;
             }
         };

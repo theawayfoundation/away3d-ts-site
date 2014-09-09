@@ -1,8 +1,8 @@
-///<reference path="../libs/away3d.next.d.ts" />
+///<reference path="../libs/stagegl-extensions.next.d.ts" />
 /*
 3ds file loading example in Away3d
 Demonstrates:
-How to use the Loader3D object to load an embedded internal 3ds model.
+How to use the Loader object to load an embedded internal 3ds model.
 How to map an external asset reference inside a file to an internal embedded asset.
 How to extract material data and use it to set custom material properties on a model.
 Code by Rob Bateman
@@ -28,6 +28,26 @@ THE SOFTWARE.
 */
 var examples;
 (function (examples) {
+    var View = away.containers.View;
+    var HoverController = away.controllers.HoverController;
+
+    var AssetEvent = away.events.AssetEvent;
+    var LoaderEvent = away.events.LoaderEvent;
+    var Vector3D = away.geom.Vector3D;
+
+    var AssetLoaderContext = away.library.AssetLoaderContext;
+    var AssetType = away.library.AssetType;
+
+    var DirectionalLight = away.entities.DirectionalLight;
+    var ShadowSoftMethod = away.materials.ShadowSoftMethod;
+    var StaticLightPicker = away.materials.StaticLightPicker;
+    var TriangleMethodMaterial = away.materials.TriangleMethodMaterial;
+    var Max3DSParser = away.parsers.Max3DSParser;
+    var PrimitivePlanePrefab = away.prefabs.PrimitivePlanePrefab;
+    var DefaultRenderer = away.render.DefaultRenderer;
+
+    var RequestAnimationFrame = away.utils.RequestAnimationFrame;
+
     var Basic_Load3DS = (function () {
         /**
         * Constructor
@@ -52,22 +72,22 @@ var examples;
         * Initialise the engine
         */
         Basic_Load3DS.prototype.initEngine = function () {
-            this._view = new away.containers.View(new away.render.DefaultRenderer());
+            this._view = new View(new DefaultRenderer());
 
             //setup the camera for optimal shadow rendering
             this._view.camera.projection.far = 2100;
 
             //setup controller to be used on the camera
-            this._cameraController = new away.controllers.HoverController(this._view.camera, null, 45, 20, 1000, 10);
+            this._cameraController = new HoverController(this._view.camera, null, 45, 20, 1000, 10);
         };
 
         /**
         * Initialise the lights
         */
         Basic_Load3DS.prototype.initLights = function () {
-            this._light = new away.lights.DirectionalLight(-1, -1, 1);
-            this._direction = new away.geom.Vector3D(-1, -1, 1);
-            this._lightPicker = new away.materials.StaticLightPicker([this._light]);
+            this._light = new DirectionalLight(-1, -1, 1);
+            this._direction = new Vector3D(-1, -1, 1);
+            this._lightPicker = new StaticLightPicker([this._light]);
             this._view.scene.addChild(this._light);
         };
 
@@ -75,24 +95,27 @@ var examples;
         * Initialise the materials
         */
         Basic_Load3DS.prototype.initMaterials = function () {
-            this._groundMaterial = new away.materials.TextureMaterial();
-            this._groundMaterial.shadowMethod = new away.materials.SoftShadowMapMethod(this._light, 10, 5);
+            this._groundMaterial = new TriangleMethodMaterial();
+            this._groundMaterial.shadowMethod = new ShadowSoftMethod(this._light, 10, 5);
             this._groundMaterial.shadowMethod.epsilon = 0.2;
             this._groundMaterial.lightPicker = this._lightPicker;
             this._groundMaterial.specular = 0;
-            this._ground = new away.entities.Mesh(new away.primitives.PlaneGeometry(1000, 1000), this._groundMaterial);
-            this._ground.castsShadows = false;
-            this._view.scene.addChild(this._ground);
         };
 
         /**
         * Initialise the scene objects
         */
         Basic_Load3DS.prototype.initObjects = function () {
-            this._loader = new away.containers.Loader3D();
+            this._loader = new away.containers.Loader();
             this._loader.transform.scale = new away.geom.Vector3D(300, 300, 300);
             this._loader.z = -200;
             this._view.scene.addChild(this._loader);
+
+            this._plane = new PrimitivePlanePrefab(1000, 1000);
+            this._ground = this._plane.getNewObject();
+            this._ground.material = this._groundMaterial;
+            this._ground.castsShadows = false;
+            this._view.scene.addChild(this._ground);
         };
 
         /**
@@ -116,17 +139,21 @@ var examples;
 
             this.onResize();
 
-            this._timer = new away.utils.RequestAnimationFrame(this.onEnterFrame, this);
+            this._timer = new RequestAnimationFrame(this.onEnterFrame, this);
             this._timer.start();
 
             //setup the url map for textures in the 3ds file
-            var assetLoaderContext = new away.net.AssetLoaderContext();
+            var assetLoaderContext = new AssetLoaderContext();
             assetLoaderContext.mapUrl("texture.jpg", "assets/soldier_ant.jpg");
 
-            this._loader.addEventListener(away.events.AssetEvent.ASSET_COMPLETE, away.utils.Delegate.create(this, this.onAssetComplete));
-            this._loader.load(new away.net.URLRequest("assets/soldier_ant.3ds"), assetLoaderContext, null, new away.parsers.Max3DSParser(false));
+            this._loader.addEventListener(AssetEvent.ASSET_COMPLETE, function (event) {
+                return _this.onAssetComplete(event);
+            });
+            this._loader.load(new away.net.URLRequest("assets/soldier_ant.3ds"), assetLoaderContext, null, new Max3DSParser(false));
 
-            away.library.AssetLibrary.addEventListener(away.events.LoaderEvent.RESOURCE_COMPLETE, away.utils.Delegate.create(this, this.onResourceComplete));
+            away.library.AssetLibrary.addEventListener(LoaderEvent.RESOURCE_COMPLETE, function (event) {
+                return _this.onResourceComplete(event);
+            });
             away.library.AssetLibrary.load(new away.net.URLRequest("assets/CoarseRedSand.jpg"));
         };
 
@@ -150,18 +177,18 @@ var examples;
             var asset = event.asset;
 
             switch (asset.assetType) {
-                case away.library.AssetType.MESH:
+                case AssetType.MESH:
                     var mesh = event.asset;
                     mesh.castsShadows = true;
                     break;
-                case away.library.AssetType.MATERIAL:
+                case AssetType.MATERIAL:
                     var material = event.asset;
-                    material.shadowMethod = new away.materials.SoftShadowMapMethod(this._light, 10, 5);
+                    material.shadowMethod = new ShadowSoftMethod(this._light, 10, 5);
                     material.shadowMethod.epsilon = 0.2;
                     material.lightPicker = this._lightPicker;
                     material.gloss = 30;
                     material.specular = 1;
-                    material.ambientColor = 0x303040;
+                    material.color = 0x303040;
                     material.ambient = 1;
 
                     break;
@@ -182,7 +209,7 @@ var examples;
 
                 switch (event.url) {
                     case "assets/CoarseRedSand.jpg":
-                        this._groundMaterial.texture = away.library.AssetLibrary.getAsset(asset.name);
+                        this._groundMaterial.texture = asset;
                         break;
                 }
             }

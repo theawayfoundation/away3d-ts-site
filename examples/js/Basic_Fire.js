@@ -1,4 +1,4 @@
-///<reference path="../libs/away3d.next.d.ts" />
+///<reference path="../libs/stagegl-extensions.next.d.ts" />
 /*
 Creating fire effects with particles in Away3D
 Demonstrates:
@@ -36,9 +36,7 @@ var examples;
     var ParticleVelocityNode = away.animators.ParticleVelocityNode;
     var ParticleColorNode = away.animators.ParticleColorNode;
     var ParticleAnimator = away.animators.ParticleAnimator;
-    var ParticleProperties = away.animators.ParticleProperties;
-    var Geometry = away.base.Geometry;
-    var ParticleGeometry = away.base.ParticleGeometry;
+
     var Scene = away.containers.Scene;
     var View = away.containers.View;
     var HoverController = away.controllers.HoverController;
@@ -48,14 +46,14 @@ var examples;
     var TimerEvent = away.events.TimerEvent;
     var ColorTransform = away.geom.ColorTransform;
     var Vector3D = away.geom.Vector3D;
-    var DirectionalLight = away.lights.DirectionalLight;
-    var TextureMaterial = away.materials.TextureMaterial;
-    var TextureMultiPassMaterial = away.materials.TextureMultiPassMaterial;
+    var DirectionalLight = away.entities.DirectionalLight;
+    var TriangleMethodMaterial = away.materials.TriangleMethodMaterial;
+    var TriangleMaterialMode = away.materials.TriangleMaterialMode;
     var StaticLightPicker = away.materials.StaticLightPicker;
-    var PlaneGeometry = away.primitives.PlaneGeometry;
+    var PrimitivePlanePrefab = away.prefabs.PrimitivePlanePrefab;
+    var DefaultRenderer = away.render.DefaultRenderer;
     var ParticleGeometryHelper = away.tools.ParticleGeometryHelper;
-    var Cast = away.utils.Cast;
-    var RequestAnimationFrame = away.utils.RequestAnimationFrame;
+
     var Timer = away.utils.Timer;
 
     var Basic_Fire = (function () {
@@ -88,7 +86,7 @@ var examples;
 
             this.camera = new Camera();
 
-            this.view = new View(new away.render.DefaultRenderer());
+            this.view = new View(new DefaultRenderer());
 
             //this.view.antiAlias = 4;
             this.view.scene = this.scene;
@@ -123,13 +121,14 @@ var examples;
         * Initialise the materials
         */
         Basic_Fire.prototype.initMaterials = function () {
-            this.planeMaterial = new TextureMultiPassMaterial();
+            this.planeMaterial = new TriangleMethodMaterial();
+            this.planeMaterial.materialMode = TriangleMaterialMode.MULTI_PASS;
             this.planeMaterial.lightPicker = this.lightPicker;
             this.planeMaterial.repeat = true;
             this.planeMaterial.mipmap = false;
             this.planeMaterial.specular = 10;
 
-            this.particleMaterial = new TextureMaterial();
+            this.particleMaterial = new TriangleMethodMaterial();
             this.particleMaterial.blendMode = BlendMode.ADD;
         };
 
@@ -154,12 +153,12 @@ var examples;
             this.fireAnimationSet.initParticleFunc = this.initParticleFunc;
 
             //create the original particle geometry
-            var particle = new PlaneGeometry(10, 10, 1, 1, false);
+            var particle = new PrimitivePlanePrefab(10, 10, 1, 1, false);
 
             //combine them into a list
             var geometrySet = new Array();
             for (var i = 0; i < 500; i++)
-                geometrySet.push(particle);
+                geometrySet.push(particle.geometry);
 
             this.particleGeometry = ParticleGeometryHelper.generateGeometry(geometrySet);
         };
@@ -168,7 +167,8 @@ var examples;
         * Initialise the scene objects
         */
         Basic_Fire.prototype.initObjects = function () {
-            this.plane = new Mesh(new PlaneGeometry(1000, 1000), this.planeMaterial);
+            this.plane = new PrimitivePlanePrefab(1000, 1000).getNewObject();
+            this.plane.material = this.planeMaterial;
             this.plane.geometry.scaleUV(2, 2);
             this.plane.y = -20;
 
@@ -386,7 +386,7 @@ var examples;
 
 var ParticleAnimator = away.animators.ParticleAnimator;
 var Mesh = away.entities.Mesh;
-var PointLight = away.lights.PointLight;
+var PointLight = away.entities.PointLight;
 
 /**
 * Data class for the fire objects

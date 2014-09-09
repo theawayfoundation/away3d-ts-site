@@ -1,4 +1,4 @@
-﻿///<reference path="../libs/away3d.next.d.ts" />
+﻿///<reference path="../libs/stagegl-extensions.next.d.ts" />
 /*
 Particle explosions in Away3D using the Adobe AIR and Adobe Flash Player logos
 Demonstrates:
@@ -35,28 +35,26 @@ var examples;
     var ParticleBillboardNode = away.animators.ParticleBillboardNode;
     var ParticleInitialColorNode = away.animators.ParticleInitialColorNode;
     var ParticlePositionNode = away.animators.ParticlePositionNode;
-    var ParticleProperties = away.animators.ParticleProperties;
+
     var ParticlePropertiesMode = away.animators.ParticlePropertiesMode;
-    var Geometry = away.base.Geometry;
-    var ParticleGeometry = away.base.ParticleGeometry;
+
     var Scene = away.containers.Scene;
     var View = away.containers.View;
     var HoverController = away.controllers.HoverController;
-    var BitmapData = away.base.BitmapData;
+
     var Camera = away.entities.Camera;
     var Mesh = away.entities.Mesh;
-    var LoaderEvent = away.events.LoaderEvent;
+
     var ColorTransform = away.geom.ColorTransform;
     var Vector3D = away.geom.Vector3D;
-    var AssetLibrary = away.library.AssetLibrary;
-    var PointLight = away.lights.PointLight;
-    var ColorMaterial = away.materials.ColorMaterial;
+
+    var PointLight = away.entities.PointLight;
+    var TriangleMethodMaterial = away.materials.TriangleMethodMaterial;
     var StaticLightPicker = away.materials.StaticLightPicker;
-    var PlaneGeometry = away.primitives.PlaneGeometry;
+    var PrimitivePlanePrefab = away.prefabs.PrimitivePlanePrefab;
     var DefaultRenderer = away.render.DefaultRenderer;
     var ParticleGeometryHelper = away.tools.ParticleGeometryHelper;
     var Cast = away.utils.Cast;
-    var RequestAnimationFrame = away.utils.RequestAnimationFrame;
 
     var Intermediate_ParticleExplosions = (function () {
         /**
@@ -124,7 +122,7 @@ var examples;
         */
         Intermediate_ParticleExplosions.prototype.initMaterials = function () {
             //setup the particle material
-            this.colorMaterial = new ColorMaterial(0xFFFFFF);
+            this.colorMaterial = new TriangleMethodMaterial(0xFFFFFF);
             this.colorMaterial.bothSides = true;
             this.colorMaterial.lightPicker = this.lightPicker;
         };
@@ -195,12 +193,12 @@ var examples;
             var num = this.colorPoints.length;
 
             //setup the base geometry for one particle
-            var plane = new PlaneGeometry(Intermediate_ParticleExplosions.PARTICLE_SIZE, Intermediate_ParticleExplosions.PARTICLE_SIZE, 1, 1, false);
+            var plane = new PrimitivePlanePrefab(Intermediate_ParticleExplosions.PARTICLE_SIZE, Intermediate_ParticleExplosions.PARTICLE_SIZE, 1, 1, false);
 
             //combine them into a list
             var colorGeometrySet = new Array();
             for (i = 0; i < num; i++)
-                colorGeometrySet.push(plane);
+                colorGeometrySet.push(plane.geometry);
 
             //generate the particle geometries
             this.colorGeometry = ParticleGeometryHelper.generateGeometry(colorGeometrySet);
@@ -391,7 +389,7 @@ var examples;
             this.view.width = window.innerWidth;
             this.view.height = window.innerHeight;
         };
-        Intermediate_ParticleExplosions.PARTICLE_SIZE = 1;
+        Intermediate_ParticleExplosions.PARTICLE_SIZE = 2;
         Intermediate_ParticleExplosions.NUM_ANIMATORS = 4;
         return Intermediate_ParticleExplosions;
     })();

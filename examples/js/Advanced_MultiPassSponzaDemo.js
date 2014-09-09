@@ -1,4 +1,4 @@
-///<reference path="../libs/away3d.next.d.ts" />
+///<reference path="../libs/stagegl-extensions.next.d.ts" />
 /*
 Crytek Sponza demo using multipass materials in Away3D
 Demonstrates:
@@ -36,11 +36,11 @@ THE SOFTWARE.
 */
 var examples;
 (function (examples) {
-    var Loader3D = away.containers.Loader3D;
+    var Loader = away.containers.Loader;
     var View = away.containers.View;
     var FirstPersonController = away.controllers.FirstPersonController;
     var Geometry = away.base.Geometry;
-    var SubMesh = away.base.SubMesh;
+
     var BlendMode = away.base.BlendMode;
     var Mesh = away.entities.Mesh;
     var Skybox = away.entities.Skybox;
@@ -48,27 +48,27 @@ var examples;
     var AssetEvent = away.events.AssetEvent;
     var ProgressEvent = away.events.ProgressEvent;
     var LoaderEvent = away.events.LoaderEvent;
+    var UVTransform = away.geom.UVTransform;
     var Vector3D = away.geom.Vector3D;
+    var AssetLoaderContext = away.library.AssetLoaderContext;
     var AssetType = away.library.AssetType;
-    var DirectionalLight = away.lights.DirectionalLight;
-    var PointLight = away.lights.PointLight;
+    var DirectionalLight = away.entities.DirectionalLight;
+    var PointLight = away.entities.PointLight;
 
-    //	import CascadeShadowMapper				= away.lights.CascadeShadowMapper;
-    var DirectionalShadowMapper = away.lights.DirectionalShadowMapper;
     var AWDParser = away.parsers.AWDParser;
-    var TextureMaterial = away.materials.TextureMaterial;
-    var TextureMultiPassMaterial = away.materials.TextureMultiPassMaterial;
+    var SkyboxMaterial = away.materials.SkyboxMaterial;
+    var TriangleMethodMaterial = away.materials.TriangleMethodMaterial;
+    var TriangleMaterialMode = away.materials.TriangleMaterialMode;
     var StaticLightPicker = away.materials.StaticLightPicker;
-    var CascadeShadowMapMethod = away.materials.CascadeShadowMapMethod;
-    var FilteredShadowMapMethod = away.materials.FilteredShadowMapMethod;
-    var FogMethod = away.materials.FogMethod;
-    var AssetLoaderContext = away.net.AssetLoaderContext;
+
+    var ShadowSoftMethod = away.materials.ShadowSoftMethod;
+    var EffectFogMethod = away.materials.EffectFogMethod;
     var URLLoader = away.net.URLLoader;
     var URLLoaderDataFormat = away.net.URLLoaderDataFormat;
     var URLRequest = away.net.URLRequest;
-    var PlaneGeometry = away.primitives.PlaneGeometry;
+    var PrimitivePlanePrefab = away.prefabs.PrimitivePlanePrefab;
     var DefaultRenderer = away.render.DefaultRenderer;
-    var ImageCubeTexture = away.textures.ImageCubeTexture;
+
     var ImageTexture = away.textures.ImageTexture;
     var SpecularBitmapTexture = away.textures.SpecularBitmapTexture;
     var Merge = away.commands.Merge;
@@ -197,12 +197,12 @@ var examples;
 
             //create our global light picker
             this._lightPicker = new StaticLightPicker(this._lights);
-            this._baseShadowMethod = new away.materials.SoftShadowMapMethod(this._directionalLight, 10, 5);
+            this._baseShadowMethod = new ShadowSoftMethod(this._directionalLight, 10, 5);
 
-            //			this._baseShadowMethod = new FilteredShadowMapMethod(this._directionalLight);
+            //			this._baseShadowMethod = new ShadowFilteredMethod(this._directionalLight);
             //create our global fog method
-            this._fogMethod = new FogMethod(0, 4000, 0x9090e7);
-            //			this._cascadeMethod = new CascadeShadowMapMethod(this._baseShadowMethod);
+            this._fogMethod = new EffectFogMethod(0, 4000, 0x9090e7);
+            //			this._cascadeMethod = new ShadowCascadeMethod(this._baseShadowMethod);
         };
 
         /**
@@ -210,16 +210,18 @@ var examples;
         */
         Advanced_MultiPassSponzaDemo.prototype.initObjects = function () {
             //create skybox
-            this._view.scene.addChild(new Skybox(this._skyMap));
+            this._view.scene.addChild(new Skybox(new SkyboxMaterial(this._skyMap)));
 
             //create flame meshes
-            this._flameGeometry = new PlaneGeometry(40, 80, 1, 1, false, true);
+            this._flameGeometry = new PrimitivePlanePrefab(40, 80, 1, 1, false, true);
             var flameVO;
             var len = this._flameData.length;
             for (var i = 0; i < len; i++) {
                 flameVO = this._flameData[i];
-                var mesh = flameVO.mesh = new Mesh(this._flameGeometry, this._flameMaterial);
+                var mesh = flameVO.mesh = this._flameGeometry.getNewObject();
+                mesh.material = this._flameMaterial;
                 mesh.transform.position = flameVO.position;
+                mesh.subMeshes[0].uvTransform = new UVTransform();
                 mesh.subMeshes[0].uvTransform.scaleU = 1 / 16;
                 this._view.scene.addChild(mesh);
                 mesh.addChild(flameVO.light);
@@ -253,6 +255,25 @@ var examples;
             };
 
             this.onResize();
+
+            this.parseAWDDelegate = function (event) {
+                return _this.parseAWD(event);
+            };
+            this.parseBitmapDelegate = function (event) {
+                return _this.parseBitmap(event);
+            };
+            this.loadProgressDelegate = function (event) {
+                return _this.loadProgress(event);
+            };
+            this.onBitmapCompleteDelegate = function (event) {
+                return _this.onBitmapComplete(event);
+            };
+            this.onAssetCompleteDelegate = function (event) {
+                return _this.onAssetComplete(event);
+            };
+            this.onResourceCompleteDelegate = function (event) {
+                return _this.onResourceComplete(event);
+            };
 
             this._timer = new away.utils.RequestAnimationFrame(this.onEnterFrame, this);
             this._timer.start();
@@ -313,32 +334,25 @@ var examples;
         * Global binary file loader
         */
         Advanced_MultiPassSponzaDemo.prototype.load = function (url) {
-            var _this = this;
             var loader = new URLLoader();
             switch (url.substring(url.length - 3)) {
                 case "AWD":
                 case "awd":
                     loader.dataFormat = URLLoaderDataFormat.ARRAY_BUFFER;
                     this._loadingText = "Loading Model";
-                    loader.addEventListener(Event.COMPLETE, function (event) {
-                        return _this.parseAWD(event);
-                    });
+                    loader.addEventListener(Event.COMPLETE, this.parseAWDDelegate);
                     break;
                 case "png":
                 case "jpg":
                     loader.dataFormat = URLLoaderDataFormat.BLOB;
                     this._currentTexture++;
                     this._loadingText = "Loading Textures";
-                    loader.addEventListener(Event.COMPLETE, function (event) {
-                        return _this.parseBitmap(event);
-                    });
+                    loader.addEventListener(Event.COMPLETE, this.parseBitmapDelegate);
                     url = "sponza/" + url;
                     break;
             }
 
-            loader.addEventListener(ProgressEvent.PROGRESS, function (e) {
-                return _this.loadProgress(e);
-            });
+            loader.addEventListener(ProgressEvent.PROGRESS, this.loadProgressDelegate);
             var urlReq = new URLRequest(this._assetsRoot + url);
             loader.load(urlReq);
         };
@@ -396,14 +410,11 @@ var examples;
         * Parses the Bitmap file
         */
         Advanced_MultiPassSponzaDemo.prototype.parseBitmap = function (e) {
-            var _this = this;
             var urlLoader = e.target;
             var image = away.parsers.ParserUtils.blobToImage(urlLoader.data);
-            image.onload = function (event) {
-                return _this.onBitmapComplete(event);
-            };
-            urlLoader.removeEventListener(Event.COMPLETE, this.parseBitmap);
-            urlLoader.removeEventListener(ProgressEvent.PROGRESS, this.loadProgress);
+            image.onload = this.onBitmapCompleteDelegate;
+            urlLoader.removeEventListener(Event.COMPLETE, this.parseBitmapDelegate);
+            urlLoader.removeEventListener(ProgressEvent.PROGRESS, this.loadProgressDelegate);
             urlLoader = null;
         };
 
@@ -412,10 +423,11 @@ var examples;
         */
         Advanced_MultiPassSponzaDemo.prototype.onBitmapComplete = function (e) {
             var image = e.target;
+            image.onload = null;
 
             //create bitmap texture in dictionary
             if (!this._textureDictionary[this._loadingTextureStrings[this._n]])
-                this._textureDictionary[this._loadingTextureStrings[this._n]] = (this._loadingTextureStrings == this._specularTextureStrings) ? new ImageTexture(image, true) : new ImageTexture(image, true);
+                this._textureDictionary[this._loadingTextureStrings[this._n]] = (this._loadingTextureStrings == this._specularTextureStrings) ? new SpecularBitmapTexture(Cast.bitmapData(image)) : new ImageTexture(image);
 
             while (this._n++ < this._loadingTextureStrings.length - 1)
                 if (this._loadingTextureStrings[this._n])
@@ -441,25 +453,17 @@ var examples;
         * Parses the AWD file
         */
         Advanced_MultiPassSponzaDemo.prototype.parseAWD = function (e) {
-            var _this = this;
             console.log("Parsing Data");
-            var loader = e.target;
-            var loader3d = new Loader3D(false);
-            var context = new AssetLoaderContext();
-            context.includeDependencies = false;
+            var urlLoader = e.target;
+            var loader = new Loader(false);
 
-            //context.dependencyBaseUrl = "assets/sponza/";
-            loader3d.addEventListener(AssetEvent.ASSET_COMPLETE, function (event) {
-                return _this.onAssetComplete(event);
-            });
-            loader3d.addEventListener(LoaderEvent.RESOURCE_COMPLETE, function (event) {
-                return _this.onResourceComplete(event);
-            });
-            loader3d.loadData(loader.data, context, null, new AWDParser());
+            loader.addEventListener(AssetEvent.ASSET_COMPLETE, this.onAssetCompleteDelegate);
+            loader.addEventListener(LoaderEvent.RESOURCE_COMPLETE, this.onResourceCompleteDelegate);
+            loader.loadData(urlLoader.data, new AssetLoaderContext(false), null, new AWDParser());
 
-            loader.removeEventListener(ProgressEvent.PROGRESS, this.loadProgress);
-            loader.removeEventListener(Event.COMPLETE, this.parseAWD);
-            loader = null;
+            urlLoader.removeEventListener(ProgressEvent.PROGRESS, this.loadProgressDelegate);
+            urlLoader.removeEventListener(Event.COMPLETE, this.parseAWDDelegate);
+            urlLoader = null;
         };
 
         /**
@@ -478,9 +482,9 @@ var examples;
         Advanced_MultiPassSponzaDemo.prototype.onResourceComplete = function (e) {
             var merge = new Merge(false, false, true);
 
-            var loader3d = e.target;
-            loader3d.removeEventListener(AssetEvent.ASSET_COMPLETE, this.onAssetComplete);
-            loader3d.removeEventListener(LoaderEvent.RESOURCE_COMPLETE, this.onResourceComplete);
+            var loader = e.target;
+            loader.removeEventListener(AssetEvent.ASSET_COMPLETE, this.onAssetCompleteDelegate);
+            loader.removeEventListener(LoaderEvent.RESOURCE_COMPLETE, this.onResourceCompleteDelegate);
 
             //reassign materials
             var mesh;
@@ -558,12 +562,12 @@ var examples;
                 var specularTextureName;
 
                 //				//store single pass materials for use later
-                //				var singleMaterial:TextureMaterial = this._singleMaterialDictionary[name];
+                //				var singleMaterial:TriangleMethodMaterial = this._singleMaterialDictionary[name];
                 //
                 //				if (!singleMaterial) {
                 //
                 //					//create singlepass material
-                //					singleMaterial = new TextureMaterial(this._textureDictionary[textureName]);
+                //					singleMaterial = new TriangleMethodMaterial(this._textureDictionary[textureName]);
                 //
                 //					singleMaterial.name = name;
                 //					singleMaterial.lightPicker = this._lightPicker;
@@ -594,14 +598,14 @@ var examples;
 
                 if (!multiMaterial) {
                     //create multipass material
-                    multiMaterial = new TextureMultiPassMaterial(this._textureDictionary[textureName]);
+                    multiMaterial = new TriangleMethodMaterial(this._textureDictionary[textureName]);
+                    multiMaterial.materialMode = TriangleMaterialMode.MULTI_PASS;
                     multiMaterial.name = name;
                     multiMaterial.lightPicker = this._lightPicker;
 
                     //					multiMaterial.shadowMethod = this._cascadeMethod;
                     multiMaterial.shadowMethod = this._baseShadowMethod;
-                    multiMaterial.addMethod(this._fogMethod);
-                    multiMaterial.mipmap = false;
+                    multiMaterial.addEffectMethod(this._fogMethod);
                     multiMaterial.repeat = true;
                     multiMaterial.specular = 2;
 
@@ -650,7 +654,7 @@ var examples;
             away.library.AssetLibrary.addEventListener(away.events.LoaderEvent.RESOURCE_COMPLETE, away.utils.Delegate.create(this, this.onExtraResourceComplete));
 
             //setup the url map for textures in the cubemap file
-            var assetLoaderContext = new away.net.AssetLoaderContext();
+            var assetLoaderContext = new AssetLoaderContext();
             assetLoaderContext.dependencyBaseUrl = "assets/skybox/";
 
             //environment texture
@@ -670,7 +674,7 @@ var examples;
                     this._skyMap = event.assets[0];
                     break;
                 case "assets/fire.png":
-                    this._flameMaterial = new TextureMaterial(event.assets[0]);
+                    this._flameMaterial = new TriangleMethodMaterial(event.assets[0]);
                     this._flameMaterial.blendMode = BlendMode.ADD;
                     this._flameMaterial.animateUVs = true;
                     break;
@@ -819,7 +823,7 @@ var examples;
 
 var Mesh = away.entities.Mesh;
 var Vector3D = away.geom.Vector3D;
-var PointLight = away.lights.PointLight;
+var PointLight = away.entities.PointLight;
 
 /**
 * Data class for the Flame objects

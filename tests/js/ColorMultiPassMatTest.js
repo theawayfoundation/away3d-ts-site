@@ -1,34 +1,45 @@
-///<reference path="../../../build/Away3D.next.d.ts" />
-//<reference path="../../../src/Away3D.ts" />
+///<reference path="../../build/stagegl-core.next.d.ts" />
 var tests;
 (function (tests) {
     (function (materials) {
+        var View = away.containers.View;
+
+        var PointLight = away.entities.PointLight;
+        var Vector3D = away.geom.Vector3D;
+
+        var StaticLightPicker = away.materials.StaticLightPicker;
+        var TriangleMethodMaterial = away.materials.TriangleMethodMaterial;
+        var PrimitiveTorusPrefab = away.prefabs.PrimitiveTorusPrefab;
+        var DefaultRenderer = away.render.DefaultRenderer;
+        var RequestAnimationFrame = away.utils.RequestAnimationFrame;
+
         var ColorMultiPassMatTest = (function () {
             function ColorMultiPassMatTest() {
-                this.counter = 0;
-                this.center = new away.geom.Vector3D();
-                this.init();
-            }
-            ColorMultiPassMatTest.prototype.init = function () {
                 var _this = this;
+                this.counter = 0;
+                this.center = new Vector3D();
                 away.Debug.THROW_ERRORS = false;
                 away.Debug.LOG_PI_ERRORS = false;
 
-                this.light = new away.lights.PointLight();
-                this.view = new away.containers.View(new away.render.DefaultRenderer());
+                this.light = new PointLight();
+                this.view = new View(new DefaultRenderer());
                 this.view.camera.z = -1000;
                 this.view.backgroundColor = 0x000000;
-                this.torus = new away.primitives.TorusGeometry(50, 10, 32, 32, false);
+                this.torus = new PrimitiveTorusPrefab(50, 10, 32, 32, false);
 
                 var l = 20;
                 var radius = 500;
 
-                var mat = new away.materials.ColorMultiPassMaterial(0xff0000);
-                mat.lightPicker = new away.materials.StaticLightPicker([this.light]);
+                var mat = new TriangleMethodMaterial(0xff0000);
+
+                mat.lightPicker = new StaticLightPicker([this.light]);
+
+                this.torus.material = mat;
 
                 for (var c = 0; c < l; c++) {
                     var t = Math.PI * 2 * c / l;
-                    var m = new away.entities.Mesh(this.torus, mat);
+                    var m = this.torus.getNewObject();
+
                     m.x = Math.cos(t) * radius;
                     m.y = 0;
                     m.z = Math.sin(t) * radius;
@@ -42,21 +53,20 @@ var tests;
                 this.view.width = window.innerWidth;
                 this.view.height = window.innerHeight;
 
-                console.log('renderer ', this.view.renderer);
-                console.log('scene ', this.view.scene);
-                console.log('view ', this.view);
+                console.log("renderer ", this.view.renderer);
+                console.log("scene ", this.view.scene);
+                console.log("view ", this.view);
 
                 this.view.render();
 
-                window.onresize = function () {
-                    return _this.resize(null);
+                window.onresize = function (event) {
+                    return _this.onResize(event);
                 };
 
-                this.raf = new away.utils.RequestAnimationFrame(this.tick, this);
+                this.raf = new RequestAnimationFrame(this.tick, this);
                 this.raf.start();
-            };
-
-            ColorMultiPassMatTest.prototype.tick = function (e) {
+            }
+            ColorMultiPassMatTest.prototype.tick = function (dt) {
                 this.counter += 0.005;
                 this.view.camera.lookAt(this.center);
                 this.view.camera.x = Math.cos(this.counter) * 800;
@@ -65,11 +75,12 @@ var tests;
                 this.view.render();
             };
 
-            ColorMultiPassMatTest.prototype.resize = function (e) {
-                this.view.y = this.view.x = 0;
+            ColorMultiPassMatTest.prototype.onResize = function (event) {
+                if (typeof event === "undefined") { event = null; }
+                this.view.y = 0;
+                this.view.x = 0;
                 this.view.width = window.innerWidth;
                 this.view.height = window.innerHeight;
-                this.view.render();
             };
             return ColorMultiPassMatTest;
         })();
